@@ -15,7 +15,7 @@ left_base_image_path = str(resources_path / "base_images/left_base_image.png")
 # For testing purposes
 test_video_path = str(resources_path / "test_video/test_video.webm")
 
-class CustomPartTracker:
+class Comparer:
     def __init__(self, camera_id=0, model_path=models_path):
         
         self.cap = cv2.VideoCapture(test_video_path)
@@ -225,6 +225,6 @@ class CustomPartTracker:
         return True
 
 if __name__ == "__main__":
-    cam = CustomPartTracker(camera_id=0, model_path=models_path)
+    cam = Comparer(camera_id=0, model_path=models_path)
     cam.load_base_images()
     cam.run()
