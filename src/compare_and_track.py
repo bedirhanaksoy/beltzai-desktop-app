@@ -3,11 +3,21 @@ import numpy as np
 from collections import deque
 import time
 from ultralytics import YOLO
+from pathlib import Path
+
+MAIN_PATH = Path(__file__).resolve()
+resources_path = MAIN_PATH.resolve().parent.parent / "resources"
+
+models_path = resources_path / "models/right_part_medium.pt"
+base_image_path = resources_path / "base_images"
+
+# For testing purposes
+test_video_path = resources_path / "test_video/test_video.webm" 
 
 class CustomPartTracker:
-    def __init__(self, camera_id=0, model_path="best.pt"):
+    def __init__(self, camera_id=0, model_path=models_path):
         
-        self.cap = cv2.VideoCapture(camera_id)
+        self.cap = cv2.VideoCapture(str(test_video_path))
         # self.boxes = [
         #    [(50, 200), (200, 350)],  # Right box
         #    [(350, 200), (500, 350)]   # Left box
@@ -43,8 +53,8 @@ class CustomPartTracker:
     def load_base_images(self):
         """Load base images"""
         try:
-            self.right_base = cv2.imread("right-base-image.png")
-            self.left_base = cv2.imread("left-base-image.png")
+            self.right_base = cv2.imread(str(base_image_path / "right-base-image.png"))
+            self.left_base = cv2.imread(str(base_image_path / "left-base-image.png"))
             self.base_images_loaded = True
             print("Base images loaded successfully")
         except Exception as e:
@@ -310,9 +320,9 @@ class CustomPartTracker:
             if key == ord('q'):
                 break
             elif key == ord('1') and len(self.boxes) >= 1:
-                self.crop_and_save(self.boxes[0], "right-base-image.png")
+                self.crop_and_save(self.boxes[0], str(base_image_path / "right-base-image.png"))
             elif key == ord('2') and len(self.boxes) >= 2:
-                self.crop_and_save(self.boxes[1], "left-base-image.png")
+                self.crop_and_save(self.boxes[1], str(base_image_path / "left-base-image.png"))
             elif key == ord('c'):
                 self.boxes = []
 
@@ -320,6 +330,6 @@ class CustomPartTracker:
         cv2.destroyAllWindows()
 
 if __name__ == "__main__":
-    cam = CustomPartTracker(camera_id=2, model_path="/home/thoright/Grad Project/CV/part-tracking/right_part_medium.pt")
+    cam = CustomPartTracker(camera_id=2, model_path=str(models_path))
     cam.load_base_images()
     cam.run()
