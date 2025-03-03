@@ -25,3 +25,8 @@ build/
 # Local development settings
 .env
 *.log
+
+# YOLO models
+resources/models/*
+!resources/models/
+!resources/models/.gitkeep
