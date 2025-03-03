@@ -29,4 +29,4 @@ build/
 # YOLO models
 resources/models/*
 !resources/models/
-!resources/models/.gitignore
+!resources/models/.gitkeep
