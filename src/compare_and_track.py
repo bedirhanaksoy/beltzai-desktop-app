@@ -4,7 +4,7 @@ from collections import deque
 import time
 from ultralytics import YOLO
 
-class BoundingBoxCamera:
+class CustomPartTracker:
     def __init__(self, camera_id=0, model_path="best.pt"):
         
         self.cap = cv2.VideoCapture(camera_id)
@@ -320,6 +320,6 @@ class BoundingBoxCamera:
         cv2.destroyAllWindows()
 
 if __name__ == "__main__":
-    cam = BoundingBoxCamera(camera_id=2, model_path="/home/thoright/Grad Project/CV/part-tracking/right_part_medium.pt")
+    cam = CustomPartTracker(camera_id=2, model_path="/home/thoright/Grad Project/CV/part-tracking/right_part_medium.pt")
     cam.load_base_images()
     cam.run()
