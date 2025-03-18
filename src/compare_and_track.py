@@ -19,11 +19,23 @@ class Comparer:
     def __init__(self, camera_id=0, model_path=models_path):
         
         self.cap = cv2.VideoCapture(test_video_path)
+        
+        ret, self.frame = self.cap.read()
+        if not ret:
+            print("Failed to grab a frame.")
+            exit()
+
+        # Get the height and width of the frame
+        self.height, self.width, _ = self.frame.shape
 
         self.boxes = [
             [(50, 200), (230, 380)],  # Right box
             [(350, 200), (530, 380)]   # Left box
         ]
+
+        self.index_side_info = [0] * 1000
+        self.index_warning_info = [0] * 1000
+
         # Initialize YOLO model
         self.model = YOLO(model_path)
         
@@ -255,7 +267,7 @@ class Comparer:
                         cv2.FONT_HERSHEY_SIMPLEX,
                         0.6, (0, 255, 0), 2)
         
-    def run(self, x1, y1, x2, y2, cls, current_time):
+    def compare(self, x1, y1, x2, y2, cls, track_id, current_time):
         for box_idx, box in enumerate(self.boxes):
                 #print("left box state: ", self.left_box_state)
                 #print("right box state: ", self.right_box_state)
@@ -301,15 +313,21 @@ class Comparer:
                                     if len(box_data['test_results']) >= int(self.TEST_DURATION / self.test_interval) and (results[0]['left_score'] > self.warning_threshold or results[0]['right_score'] > self.warning_threshold):
                                         # Calculate if majority of tests showed wrong placement
                                         #print("CONDITIONS MET: Checking for wrong placement...")
-                                        print("sum(box_data['test_results']): ", sum(box_data['test_results']))
-                                        print("len(box_data['test_results']): ", len(box_data['test_results']))
+                                        # print("sum(box_data['test_results']): ", sum(box_data['test_results']))
+                                        # print("len(box_data['test_results']): ", len(box_data['test_results']))
                                         if (box_idx == 0 and results[0]['left_score'] > results[0]['right_score']) or \
                                             (box_idx == 1 and results[0]['right_score'] > results[0]['left_score']):
                                             print(f"WARNING: Wrong object placement detected in {'Right' if box_idx == 0 else 'Left'} box!")
                                             if box_idx == 0:
+                                                self.index_side_info[track_id] = 2 # part side info assigned as left if object placed to right
                                                 self.right_box_color = 1 # red
                                             else:
+                                                self.index_side_info[track_id] = 1 # part side info assigned as right if object placed to left
                                                 self.left_box_color = 1 # red
+
+                                        else:
+                                            self.index_side_info[track_id] = box_idx + 1 # part side info assigned if object placed correctly
+
                                         if box_idx == 0:
                                             self.right_box_state = 1 # object processed & waiting for leaving
                                         else:
@@ -328,8 +346,21 @@ class Comparer:
                         
                     # Reset tracking for this box
                     self.objects_in_boxes[box_idx] = {'object': None, 'start_time': 0, 'test_results': [], 'prev_bbox': None, 'bbox_history': deque(maxlen=self.BBOX_HISTORY_SIZE)}
-
-
+    
+    def check(self, x1, x2, track_id):
+        if((x1+x2)/2 > (self.width)/2) and (self.index_side_info[track_id] == 1) and self.index_warning_info[track_id] == 0:
+            print("WARNING: RIGHT SIDED OBJECT HAS MOVED OVER THE WRONG SIDE!!!!!!!!!!!!!!!!!!!!!!!!!!!!1")
+            self.index_warning_info[track_id] == 1
+        elif((x1+x2)/2 < (self.width)/2) and (self.index_side_info[track_id] == 1) and self.index_warning_info[track_id] == 1:
+            print("INSIDE FIRST ELIF")
+            self.index_warning_info[track_id] == 0
+        elif((x1+x2)/2 < (self.width)/2) and (self.index_side_info[track_id] == 2) and self.index_warning_info[track_id] == 0:
+            print("WARNING: LEFT SIDED OBJECT HAS MOVED OVER THE WRONG SIDE!!!!!!!!!!!!!!!!!!!!!!!!!!!!1")
+            self.index_warning_info[track_id] == 1
+        elif((x1+x2)/2 > (self.width)/2) and (self.index_side_info[track_id] == 2) and self.index_warning_info[track_id] == 1:
+            print("INSIDE SECOND ELIF")
+            self.index_warning_info[track_id] == 0
+        
 if __name__ == "__main__":
     cam = Comparer(camera_id=0, model_path=models_path)
     cam.load_base_images()
