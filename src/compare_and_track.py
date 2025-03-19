@@ -320,14 +320,16 @@ class Comparer:
                                             print(f"WARNING: Wrong object placement detected in {'Right' if box_idx == 0 else 'Left'} box!")
                                             if box_idx == 0:
                                                 self.index_side_info[track_id] = 2 # part side info assigned as left if object placed to right
+                                                self.index_warning_info[track_id] = 1
                                                 self.right_box_color = 1 # red
                                             else:
                                                 self.index_side_info[track_id] = 1 # part side info assigned as right if object placed to left
+                                                self.index_warning_info[track_id] = 1
                                                 self.left_box_color = 1 # red
 
                                         else:
                                             self.index_side_info[track_id] = box_idx + 1 # part side info assigned if object placed correctly
-
+                                            self.index_warning_info[track_id] = 1
                                         if box_idx == 0:
                                             self.right_box_state = 1 # object processed & waiting for leaving
                                         else:
@@ -350,16 +352,16 @@ class Comparer:
     def check(self, x1, x2, track_id):
         if((x1+x2)/2 > (self.width)/2) and (self.index_side_info[track_id] == 1) and self.index_warning_info[track_id] == 0:
             print("WARNING: RIGHT SIDED OBJECT HAS MOVED OVER THE WRONG SIDE!!!!!!!!!!!!!!!!!!!!!!!!!!!!1")
-            self.index_warning_info[track_id] == 1
+            self.index_warning_info[track_id] = 1
         elif((x1+x2)/2 < (self.width)/2) and (self.index_side_info[track_id] == 1) and self.index_warning_info[track_id] == 1:
             print("INSIDE FIRST ELIF")
-            self.index_warning_info[track_id] == 0
+            self.index_warning_info[track_id] = 0
         elif((x1+x2)/2 < (self.width)/2) and (self.index_side_info[track_id] == 2) and self.index_warning_info[track_id] == 0:
             print("WARNING: LEFT SIDED OBJECT HAS MOVED OVER THE WRONG SIDE!!!!!!!!!!!!!!!!!!!!!!!!!!!!1")
-            self.index_warning_info[track_id] == 1
+            self.index_warning_info[track_id] = 1
         elif((x1+x2)/2 > (self.width)/2) and (self.index_side_info[track_id] == 2) and self.index_warning_info[track_id] == 1:
             print("INSIDE SECOND ELIF")
-            self.index_warning_info[track_id] == 0
+            self.index_warning_info[track_id] = 0
         
 if __name__ == "__main__":
     cam = Comparer(camera_id=0, model_path=models_path)
