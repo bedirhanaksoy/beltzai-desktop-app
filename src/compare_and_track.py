@@ -320,14 +320,16 @@ class Comparer:
                                             print(f"WARNING: Wrong object placement detected in {'Right' if box_idx == 0 else 'Left'} box!")
                                             if box_idx == 0:
                                                 self.index_side_info[track_id] = 2 # part side info assigned as left if object placed to right
+                                                self.index_warning_info[track_id] = 1
                                                 self.right_box_color = 1 # red
                                             else:
                                                 self.index_side_info[track_id] = 1 # part side info assigned as right if object placed to left
+                                                self.index_warning_info[track_id] = 1
                                                 self.left_box_color = 1 # red
 
                                         else:
                                             self.index_side_info[track_id] = box_idx + 1 # part side info assigned if object placed correctly
-
+                                            self.index_warning_info[track_id] = 1
                                         if box_idx == 0:
                                             self.right_box_state = 1 # object processed & waiting for leaving
                                         else:
