@@ -71,5 +71,6 @@ if __name__ == "__main__":
         elif key == ord('c'):
             comparer.boxes = []
 
+    comparer.logger.save_session()
     comparer.cap.release()
     cv2.destroyAllWindows()

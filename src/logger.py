@@ -123,7 +123,6 @@ class Logger:
 
     def __del__(self):
         """Close database connection when object is destroyed."""
-        self.save_session()
         self.conn.close()
 
 # Test the Logger class
