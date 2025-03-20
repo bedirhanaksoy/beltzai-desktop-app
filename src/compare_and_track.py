@@ -4,6 +4,7 @@ from collections import deque
 import time
 from ultralytics import YOLO
 from pathlib import Path
+from logger import Logger
 
 MAIN_PATH = Path(__file__).resolve()
 resources_path = MAIN_PATH.resolve().parent.parent / "resources"
@@ -18,6 +19,7 @@ test_video_path = str(resources_path / "test_video/test_video.webm")
 class Comparer:
     def __init__(self, camera_id=0, model_path=models_path):
         
+        self.logger = Logger()
         self.cap = cv2.VideoCapture(test_video_path)
         
         ret, self.frame = self.cap.read()
@@ -322,12 +324,18 @@ class Comparer:
                                                 self.index_side_info[track_id] = 2 # part side info assigned as left if object placed to right
                                                 self.index_warning_info[track_id] = 1
                                                 self.right_box_color = 1 # red
+                                                self.logger.log_detection(is_right_side=False, is_successful=False)
                                             else:
                                                 self.index_side_info[track_id] = 1 # part side info assigned as right if object placed to left
                                                 self.index_warning_info[track_id] = 1
                                                 self.left_box_color = 1 # red
+                                                self.logger.log_detection(is_right_side=True, is_successful=False)
 
                                         else:
+                                            if box_idx == 0:
+                                                self.logger.log_detection(is_right_side=True, is_successful=True)
+                                            else:
+                                                self.logger.log_detection(is_right_side=False, is_successful=True)
                                             self.index_side_info[track_id] = box_idx + 1 # part side info assigned if object placed correctly
                                             self.index_warning_info[track_id] = 1
                                         if box_idx == 0:
@@ -353,12 +361,14 @@ class Comparer:
         if((x1+x2)/2 > (self.width)/2) and (self.index_side_info[track_id] == 1) and self.index_warning_info[track_id] == 0:
             print("WARNING: RIGHT SIDED OBJECT HAS MOVED OVER THE WRONG SIDE!!!!!!!!!!!!!!!!!!!!!!!!!!!!1")
             self.index_warning_info[track_id] = 1
+            self.logger.update_stats("changed_side_detections", 1)
         elif((x1+x2)/2 < (self.width)/2) and (self.index_side_info[track_id] == 1) and self.index_warning_info[track_id] == 1:
             print("INSIDE FIRST ELIF")
             self.index_warning_info[track_id] = 0
         elif((x1+x2)/2 < (self.width)/2) and (self.index_side_info[track_id] == 2) and self.index_warning_info[track_id] == 0:
             print("WARNING: LEFT SIDED OBJECT HAS MOVED OVER THE WRONG SIDE!!!!!!!!!!!!!!!!!!!!!!!!!!!!1")
             self.index_warning_info[track_id] = 1
+            self.logger.update_stats("changed_side_detections", 1)
         elif((x1+x2)/2 > (self.width)/2) and (self.index_side_info[track_id] == 2) and self.index_warning_info[track_id] == 1:
             print("INSIDE SECOND ELIF")
             self.index_warning_info[track_id] = 0
