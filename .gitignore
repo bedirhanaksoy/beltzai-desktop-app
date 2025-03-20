@@ -30,3 +30,6 @@ build/
 resources/models/*
 !resources/models/
 !resources/models/.gitkeep
+
+# Videos
+resources/test_video/*
