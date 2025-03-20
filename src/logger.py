@@ -4,32 +4,33 @@ from pathlib import Path
 import os
 
 class Logger:
-    def __init__(self):
+    def __init__(self, model_name="YOLOv8"):
         """Initialize the logger with database connection."""
         # Get the directory of the current file
         current_dir = Path(__file__).parent
-        # Create a 'logs' directory if it doesn't exist
-        logs_dir = current_dir.parent / "logs"
-        logs_dir.mkdir(exist_ok=True)
+        # Get or create the 'logs' directory
+        self.logs_dir = current_dir.parent / "logs"
+        self.db_path = self.logs_dir / "detection_logs.db"
         
-        # Database path
-        self.db_path = logs_dir / "detection_logs.db"
+        self.ai_model_used = model_name
+
+        # Create directory only if it doesn't exist
+        if not self.logs_dir.exists():
+            self.logs_dir.mkdir(parents=True, exist_ok=True)
+            print(f"Created logs directory at: {self.logs_dir}")
         
-        # Initialize database connection and create table
+        # Initialize database connection
+        db_exists = self.db_path.exists()
         self.conn = sqlite3.connect(str(self.db_path))
         self.cursor = self.conn.cursor()
-        self._create_table()
+        
+        # Create table only if database is new
+        if not db_exists:
+            self._create_table()
+            print(f"Created new database at: {self.db_path}")
         
         # Initialize session statistics
-        self.session_stats = {
-            "total_objects_detected": 0,
-            "right_side_objects": 0,
-            "left_side_objects": 0,
-            "successful_detections": 0,
-            "failed_detections": 0,
-            "changed_side_detections": 0,
-            "ai_model_used": "YOLOv8"
-        }
+        self._reset_session_stats()
 
     def _create_table(self):
         """Create the detection_logs table if it doesn't exist."""
@@ -105,7 +106,7 @@ class Logger:
             "successful_detections": 0,
             "failed_detections": 0,
             "changed_side_detections": 0,
-            "ai_model_used": "YOLOv8"
+            "ai_model_used": self.ai_model_used
         }
 
     def get_session_stats(self, start_date=None, end_date=None):
@@ -122,4 +123,10 @@ class Logger:
 
     def __del__(self):
         """Close database connection when object is destroyed."""
+        self.save_session()
         self.conn.close()
+
+# Test the Logger class
+if __name__ == "__main__":
+    logger = Logger()
+    print(logger.get_session_stats())

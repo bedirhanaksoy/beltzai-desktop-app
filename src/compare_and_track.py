@@ -6,6 +6,9 @@ from ultralytics import YOLO
 from pathlib import Path
 from logger import Logger
 
+# TODO According to how model name is stored, change the model name for that session
+
+
 MAIN_PATH = Path(__file__).resolve()
 resources_path = MAIN_PATH.resolve().parent.parent / "resources"
 
@@ -19,7 +22,8 @@ test_video_path = str(resources_path / "test_video/test_video.webm")
 class Comparer:
     def __init__(self, camera_id=0, model_path=models_path):
         
-        self.logger = Logger()
+        model_name = Path(model_path).stem
+        self.logger = Logger(model_name=model_name)
         self.cap = cv2.VideoCapture(test_video_path)
         
         ret, self.frame = self.cap.read()
