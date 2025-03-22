@@ -31,7 +31,7 @@ async def get_report(date_from: datetime, date_to: datetime) -> Dict:
             }
             # Calculate error rate
             if stats["total_objects_detected"] > 0:
-                stats["error_rate"] = (stats["failed_detections"] / stats["total_objects_detected"]) * 100
+                stats["error_rate"] = round((stats["failed_detections"] / stats["total_objects_detected"]) * 100, 8)
             else:
                 stats["error_rate"] = 0
                 
