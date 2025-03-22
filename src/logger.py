@@ -12,8 +12,6 @@ class Logger:
         self.logs_dir = current_dir.parent / "logs"
         self.db_path = self.logs_dir / "detection_logs.db"
         
-        self.ai_model_used = model_name
-
         # Create directory only if it doesn't exist
         if not self.logs_dir.exists():
             self.logs_dir.mkdir(parents=True, exist_ok=True)
@@ -29,9 +27,13 @@ class Logger:
             self._create_table()
             print(f"Created new database at: {self.db_path}")
         
+        
+
+    def init(self, model_name="YOLOv8"):
+        self.ai_model_used = model_name
         # Initialize session statistics
         self._reset_session_stats()
-
+    
     def _create_table(self):
         """Create the detection_logs table if it doesn't exist."""
         self.cursor.execute("""

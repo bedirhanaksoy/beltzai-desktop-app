@@ -24,6 +24,7 @@ class Comparer:
         
         model_name = Path(model_path).stem
         self.logger = Logger(model_name=model_name)
+        self.logger.init()
         self.cap = cv2.VideoCapture(test_video_path)
 
         ret, self.frame = self.cap.read()
