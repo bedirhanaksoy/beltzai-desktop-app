@@ -11,7 +11,7 @@ class DateRange(BaseModel):
 # FastAPI app instance
 app = FastAPI()
 
-@app.get("/report/")
+@app.post("/report/")
 async def get_report(date_range: DateRange) -> List[Dict]:
     """
     Get the report between two dates.
@@ -67,7 +67,7 @@ async def get_report(date_range: DateRange) -> List[Dict]:
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error retrieving report: {str(e)}")
     
-@app.get("/report/model/{model_name}")
+@app.post("/report/model/{model_name}")
 async def get_model_report(model_name: str, date_range: DateRange) -> Dict:
     """
     Get the report for a specific model between two dates.
