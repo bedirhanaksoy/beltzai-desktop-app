@@ -157,7 +157,7 @@ def detect_and_compare_run(tkinter_frame=None, end_session_callback=None):
             video_label.configure(image=img_tk)
             
             # Continue the loop
-            tkinter_frame.after(10, update_frame)
+            tkinter_frame.after(10, update_frame) 
         
         # Start the update loop
         update_frame()
