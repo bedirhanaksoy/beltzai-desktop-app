@@ -4,6 +4,10 @@ from collections import deque
 import time
 from ultralytics import YOLO
 from pathlib import Path
+from logger import Logger
+
+# TODO According to how model name is stored, change the model name for that session
+
 
 MAIN_PATH = Path(__file__).resolve()
 resources_path = MAIN_PATH.resolve().parent.parent / "resources"
@@ -16,10 +20,14 @@ left_base_image_path = str(resources_path / "base_images/left_base_image.png")
 test_video_path = str(resources_path / "test_video/test_video.webm")
 
 class Comparer:
-    def __init__(self, camera_id=0, model_path=models_path):
+    def __init__(self, camera_id=2, model_path=models_path):
         
+        model_name = Path(model_path).stem
+        self.logger = Logger(model_name=model_name)
+        self.logger.init()
         self.cap = cv2.VideoCapture(test_video_path)
-        
+        #self.cap = cv2.VideoCapture(2)
+
         ret, self.frame = self.cap.read()
         if not ret:
             print("Failed to grab a frame.")
@@ -158,7 +166,7 @@ class Comparer:
             cropped = self.frame[y1:y2, x1:x2]
             cv2.imwrite(filename, cropped)
             print(f"Saved {filename}")
-            self.load_base_images()  # Reload base images after saving
+            #self.load_base_images()  # Reload base images after saving
 
     def check_object_in_box(self, box_coords, object_bbox):
         """Check if detected object is inside a test box"""
@@ -322,12 +330,18 @@ class Comparer:
                                                 self.index_side_info[track_id] = 2 # part side info assigned as left if object placed to right
                                                 self.index_warning_info[track_id] = 1
                                                 self.right_box_color = 1 # red
+                                                self.logger.log_detection(is_right_side=False, is_successful=False)
                                             else:
                                                 self.index_side_info[track_id] = 1 # part side info assigned as right if object placed to left
                                                 self.index_warning_info[track_id] = 1
                                                 self.left_box_color = 1 # red
+                                                self.logger.log_detection(is_right_side=True, is_successful=False)
 
                                         else:
+                                            if box_idx == 0:
+                                                self.logger.log_detection(is_right_side=True, is_successful=True)
+                                            else:
+                                                self.logger.log_detection(is_right_side=False, is_successful=True)
                                             self.index_side_info[track_id] = box_idx + 1 # part side info assigned if object placed correctly
                                             self.index_warning_info[track_id] = 1
                                         if box_idx == 0:
@@ -353,17 +367,19 @@ class Comparer:
         if((x1+x2)/2 > (self.width)/2) and (self.index_side_info[track_id] == 1) and self.index_warning_info[track_id] == 0:
             print("WARNING: RIGHT SIDED OBJECT HAS MOVED OVER THE WRONG SIDE!!!!!!!!!!!!!!!!!!!!!!!!!!!!1")
             self.index_warning_info[track_id] = 1
+            self.logger.update_stats("changed_side_detections", 1)
         elif((x1+x2)/2 < (self.width)/2) and (self.index_side_info[track_id] == 1) and self.index_warning_info[track_id] == 1:
             print("INSIDE FIRST ELIF")
             self.index_warning_info[track_id] = 0
         elif((x1+x2)/2 < (self.width)/2) and (self.index_side_info[track_id] == 2) and self.index_warning_info[track_id] == 0:
             print("WARNING: LEFT SIDED OBJECT HAS MOVED OVER THE WRONG SIDE!!!!!!!!!!!!!!!!!!!!!!!!!!!!1")
             self.index_warning_info[track_id] = 1
+            self.logger.update_stats("changed_side_detections", 1)
         elif((x1+x2)/2 > (self.width)/2) and (self.index_side_info[track_id] == 2) and self.index_warning_info[track_id] == 1:
             print("INSIDE SECOND ELIF")
             self.index_warning_info[track_id] = 0
         
 if __name__ == "__main__":
-    cam = Comparer(camera_id=0, model_path=models_path)
+    cam = Comparer(camera_id=2, model_path=models_path)
     cam.load_base_images()
     cam.run()
