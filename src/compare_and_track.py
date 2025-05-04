@@ -20,12 +20,13 @@ left_base_image_path = str(resources_path / "base_images/left_base_image.png")
 test_video_path = str(resources_path / "test_video/test_video.webm")
 
 class Comparer:
-    def __init__(self, camera_id=0, model_path=models_path):
+    def __init__(self, camera_id=2, model_path=models_path):
         
         model_name = Path(model_path).stem
         self.logger = Logger(model_name=model_name)
         self.logger.init()
         self.cap = cv2.VideoCapture(test_video_path)
+        #self.cap = cv2.VideoCapture(2)
 
         ret, self.frame = self.cap.read()
         if not ret:
@@ -165,7 +166,7 @@ class Comparer:
             cropped = self.frame[y1:y2, x1:x2]
             cv2.imwrite(filename, cropped)
             print(f"Saved {filename}")
-            self.load_base_images()  # Reload base images after saving
+            #self.load_base_images()  # Reload base images after saving
 
     def check_object_in_box(self, box_coords, object_bbox):
         """Check if detected object is inside a test box"""
@@ -379,6 +380,6 @@ class Comparer:
             self.index_warning_info[track_id] = 0
         
 if __name__ == "__main__":
-    cam = Comparer(camera_id=0, model_path=models_path)
+    cam = Comparer(camera_id=2, model_path=models_path)
     cam.load_base_images()
     cam.run()
