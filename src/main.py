@@ -7,6 +7,7 @@ from ultralytics import YOLO
 from pathlib import Path
 import tkinter as tk
 from PIL import Image, ImageTk
+from desktop import SequenceApp 
 
 MAIN_PATH = Path(__file__).resolve()
 resources_path = MAIN_PATH.resolve().parent.parent / "resources"
@@ -157,11 +158,13 @@ def detect_and_compare_run(tkinter_frame=None, end_session_callback=None):
             video_label.configure(image=img_tk)
             
             # Continue the loop
-            tkinter_frame.after(10, update_frame)
+            tkinter_frame.after(10, update_frame) 
         
         # Start the update loop
         update_frame()
 
-
 if __name__ == "__main__":
-    detect_and_compare_run()
+    app = SequenceApp()
+    app.protocol("WM_DELETE_WINDOW", app.on_closing)
+    app.mainloop()
+    #detect_and_compare_run()

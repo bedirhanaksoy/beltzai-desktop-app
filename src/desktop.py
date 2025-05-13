@@ -3,8 +3,10 @@ from tkinter import messagebox
 import requests
 import cv2
 from PIL import Image, ImageTk
-from main import detect_and_compare_run  # Make sure this import works as expected
 from pathlib import Path
+from compare_and_track import Comparer
+from detection_and_comparison import DetectionAndComparison
+import time
 
 SERVER_URL = "http://example.com/validate_session"  # Replace with your actual endpoint
 
@@ -19,6 +21,7 @@ boxes = [
             [(50, 200), (230, 380)],  # Right box
             [(350, 200), (530, 380)]   # Left box
         ]
+
 
 def crop_and_save(box, frame, filename):
     """Save cropped region as base image with an additional 30 pixels margin"""
@@ -76,8 +79,8 @@ class SequenceApp(tk.Tk):
         tk.Button(self, text="Submit", command=self._validate_session).pack(pady=20)
 
     def _validate_session(self):
-        self._build_operation_screen() # For testing purposes, directly go to the base image screen
-        #self._build_base_image_screen()
+        #self._build_operation_screen() # For testing purposes, directly go to the base image screen
+        self._build_base_image_screen()
         return
 
         session_id = self.session_entry.get().strip()
@@ -114,7 +117,7 @@ class SequenceApp(tk.Tk):
             self.cap.release()
             
         # Initialize camera
-        self.cap = cv2.VideoCapture(2)
+        self.cap = cv2.VideoCapture(0)
 
         # Canvas for video
         self.video_label = tk.Label(self)
@@ -134,10 +137,14 @@ class SequenceApp(tk.Tk):
         self.end_button.place(x=10, y=550)
 
         # Bind keypress
-        self.bind('<t>', self._capture_base_image)
+        #self.bind('<t>', self._capture_base_image)
+        self.bind('<t>', self._skip_capturing_base_image)
 
         # Start video loop
         self._update_frame()
+
+    def _skip_capturing_base_image(self, event=None):
+        self.next_button.config(state=tk.NORMAL)
 
     def _update_frame(self):
         if not self.cap or not self.cap.isOpened():
@@ -147,16 +154,15 @@ class SequenceApp(tk.Tk):
         if ret:
             # Flip and resize
             #frame = cv2.flip(frame, 1)
-            frame = cv2.resize(frame, (800, 600))
+            #frame = cv2.resize(frame, (800, 600))
+            
             # Draw two green rectangles where objects should be placed
-            h, w, _ = frame.shape
-            box_w, box_h = 200, 200
-            # Left box
-            cv2.rectangle(frame, (int(w*0.2 - box_w/2), int(h/2 - box_h/2)),
-                          (int(w*0.2 + box_w/2), int(h/2 + box_h/2)), (0, 255, 0), 2)
-            # Right box
-            cv2.rectangle(frame, (int(w*0.8 - box_w/2), int(h/2 - box_h/2)),
-                          (int(w*0.8 + box_w/2), int(h/2 + box_h/2)), (0, 255, 0), 2)
+            for i, box in enumerate(boxes):
+                (x1, y1), (x2, y2) = box
+                cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
+                # Add text for each box
+                label = "Right Box" if i == 0 else "Left Box"
+                cv2.putText(frame, label, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
 
             # Convert to ImageTk
             img = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -191,38 +197,35 @@ class SequenceApp(tk.Tk):
         if self.update_frame_id:
             self.after_cancel(self.update_frame_id)
             self.update_frame_id = None
-            
+
         # Clear existing widgets
         for widget in self.winfo_children():
             widget.destroy()
-            
-        # If we have a cap from previous screen, release it
+
+        # If we have a cap from the previous screen, release it
         if self.cap:
             self.cap.release()
             self.cap = None
-        
+
         # Create a frame for the operation screen
         operation_frame = tk.Frame(self, width=800, height=600)
         operation_frame.pack(fill="both", expand=True)
-        
-        # Back button to return to base image screen
-        #back_button = tk.Button(operation_frame, text="Back", command=self._build_login_screen)
-        #back_button.place(x=10, y=550)
-        
-        # End session button
-        #self.end_button = tk.Button(self, text="End Session", command=self._end_session)
-        #self.end_button.place(x=10, y=550)
 
-        # Call the detection and comparison function with our frame
-        try:
-            from main import detect_and_compare_run
-            detect_and_compare_run(operation_frame, end_session_callback=self._end_session)
-        except Exception as e:
-            messagebox.showerror("Error", f"An error occurred during detection and comparison: {e}")
-            self._build_base_image_screen()  # Go back to previous screen
-
+        # Instantiate and run DetectionAndComparison
+        self.detection_and_comparison = DetectionAndComparison(
+            tkinter_frame=operation_frame,
+            end_session_callback=self._end_session,
+            model_path=models_path,
+            right_base_image_path=right_base_image_path,
+            left_base_image_path=left_base_image_path
+        )
+        self.detection_and_comparison.run()
 
     def _end_session(self):
+        # Stop DetectionAndComparison if running
+        if hasattr(self, 'detection_and_comparison') and self.detection_and_comparison.is_running:
+            self.detection_and_comparison._stop_process()
+
         # Go back to the login screen
         self._build_login_screen()
 
