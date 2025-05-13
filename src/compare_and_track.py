@@ -25,8 +25,8 @@ class Comparer:
         model_name = Path(model_path).stem
         self.logger = Logger(model_name=model_name)
         self.logger.init()
-        self.cap = cv2.VideoCapture(test_video_path)
-        #self.cap = cv2.VideoCapture(2)
+        #self.cap = cv2.VideoCapture(test_video_path)
+        self.cap = cv2.VideoCapture(0)
 
         ret, self.frame = self.cap.read()
         if not ret:
