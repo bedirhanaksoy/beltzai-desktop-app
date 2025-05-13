@@ -5,7 +5,7 @@ import cv2
 from PIL import Image, ImageTk
 from pathlib import Path
 from compare_and_track import Comparer
-from detection_and_comparison import DetectionAndComparison
+from detection_and_comparison import ConveyorBeltOperations
 import time
 
 SERVER_URL = "http://example.com/validate_session"  # Replace with your actual endpoint
@@ -211,8 +211,8 @@ class SequenceApp(tk.Tk):
         operation_frame = tk.Frame(self, width=800, height=600)
         operation_frame.pack(fill="both", expand=True)
 
-        # Instantiate and run DetectionAndComparison
-        self.detection_and_comparison = DetectionAndComparison(
+        # Instantiate and run ConveyorBeltOperations
+        self.detection_and_comparison = ConveyorBeltOperations(
             tkinter_frame=operation_frame,
             end_session_callback=self._end_session,
             model_path=models_path,
@@ -222,7 +222,7 @@ class SequenceApp(tk.Tk):
         self.detection_and_comparison.run()
 
     def _end_session(self):
-        # Stop DetectionAndComparison if running
+        # Stop ConveyorBeltOperations if running
         if hasattr(self, 'detection_and_comparison') and self.detection_and_comparison.is_running:
             self.detection_and_comparison._stop_process()
 
