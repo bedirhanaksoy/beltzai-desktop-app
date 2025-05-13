@@ -7,13 +7,13 @@ from pathlib import Path
 from compare_and_track import Comparer
 from detection_and_comparison import ConveyorBeltOperations
 import time
+import os  # Add this import to handle file operations
 
 SERVER_URL = "http://example.com/validate_session"  # Replace with your actual endpoint
 
 MAIN_PATH = Path(__file__).resolve()
 resources_path = MAIN_PATH.resolve().parent.parent / "resources"
 
-models_path = str(resources_path / "models/right_part_medium.pt")
 right_base_image_path = str(resources_path / "base_images/right_base_image.png")
 left_base_image_path = str(resources_path / "base_images/left_base_image.png")
 
@@ -89,7 +89,8 @@ class SequenceApp(tk.Tk):
         submit_button.pack(pady=24)
 
     def _validate_session(self):
-        self._build_base_image_screen()
+        self._build_model_selection_screen()
+        #self._build_base_image_screen()
         return
 
     def _build_base_image_screen(self):
@@ -187,6 +188,93 @@ class SequenceApp(tk.Tk):
 
         self.next_button.config(state=tk.NORMAL)
 
+    def _build_model_selection_screen(self):
+        """Build the model selection screen."""
+        # Clear any existing widgets
+        for widget in self.winfo_children():
+            widget.destroy()
+
+        # Create a frame for the model selection screen
+        model_frame = tk.Frame(self, bg="white", width=800, height=600)
+        model_frame.pack(fill="both", expand=True)
+
+        # Title label
+        title_label = tk.Label(
+            model_frame,
+            text="Select a Model for Detection",
+            bg="white",
+            font=("Arial", 18, "bold")
+        )
+        title_label.pack(pady=20)
+
+        # List available models
+        models_folder = resources_path / "models"
+        model_files = [f for f in os.listdir(models_folder) if f.endswith(".pt")]
+
+        if not model_files:
+            no_model_label = tk.Label(
+                model_frame,
+                text="No models found in the 'models' folder.",
+                bg="white",
+                font=("Arial", 14),
+                fg="red"
+            )
+            no_model_label.pack(pady=20)
+            return
+
+        # Dropdown menu for model selection
+        self.selected_model = tk.StringVar()
+        model_dropdown = tk.OptionMenu(model_frame, self.selected_model, *model_files)
+        model_dropdown.config(font=("Arial", 14), bg="#007BFF", fg="white", relief="raised")
+        model_dropdown.pack(pady=20)
+
+        # Set the default value to the first model in the list
+        if model_files:
+            self.selected_model.set(model_files[0])
+
+        global selected_model_path
+        selected_model_path = str(models_folder / self.selected_model.get())
+        print(f"Selected model path: {selected_model_path}")
+        # Submit button
+        submit_button = tk.Button(
+            model_frame,
+            text="Confirm Model",
+            command=self._confirm_model_selection,
+            bg="#28a745",
+            fg="white",
+            font=("Arial", 14, "bold"),
+            relief="raised",
+            bd=4,
+            padx=20,
+            pady=10
+        )
+        submit_button.pack(pady=20)
+
+        # Back button
+        back_button = tk.Button(
+            model_frame,
+            text="Back",
+            command=self._build_base_image_screen,
+            bg="#dc3545",
+            fg="white",
+            font=("Arial", 14, "bold"),
+            relief="raised",
+            bd=4,
+            padx=20,
+            pady=10
+        )
+        back_button.pack(pady=10)
+
+    def _confirm_model_selection(self):
+        """Handle model selection confirmation."""
+        
+        global selected_model_path
+        selected_model_path = resources_path / "models" / self.selected_model.get()
+        print(f"Selected model: {selected_model_path}")
+        # Proceed to the next screen or save the selected model path
+        self._build_base_image_screen()
+        #self._build_operation_screen()
+
     def _build_operation_screen(self):
         if self.update_frame_id:
             self.after_cancel(self.update_frame_id)
@@ -205,7 +293,7 @@ class SequenceApp(tk.Tk):
         self.detection_and_comparison = ConveyorBeltOperations(
             tkinter_frame=operation_frame,
             end_session_callback=self._end_session,
-            model_path=models_path,
+            model_path=selected_model_path,
             right_base_image_path=right_base_image_path,
             left_base_image_path=left_base_image_path
         )

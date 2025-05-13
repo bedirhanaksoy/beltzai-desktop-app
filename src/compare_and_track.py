@@ -12,7 +12,6 @@ from logger import Logger
 MAIN_PATH = Path(__file__).resolve()
 resources_path = MAIN_PATH.resolve().parent.parent / "resources"
 
-models_path = str(resources_path / "models/right_part_medium.pt")
 right_base_image_path = str(resources_path / "base_images/right_base_image.png")
 left_base_image_path = str(resources_path / "base_images/left_base_image.png")
 
@@ -20,9 +19,10 @@ left_base_image_path = str(resources_path / "base_images/left_base_image.png")
 test_video_path = str(resources_path / "test_video/test_video.webm")
 
 class Comparer:
-    def __init__(self, camera_id=2, model_path=models_path):
+    def __init__(self, camera_id=2, model_path=None):
         
         model_name = Path(model_path).stem
+        print(f"Model name: {model_name}")
         self.logger = Logger(model_name=model_name)
         self.logger.init()
         #self.cap = cv2.VideoCapture(test_video_path)
@@ -46,7 +46,7 @@ class Comparer:
 
         # Initialize YOLO model
         self.model = YOLO(model_path)
-        
+        print(f"Model loaded from {model_path}")
         # Add these parameters
         self.BBOX_HISTORY_SIZE = 5  # Number of previous bounding boxes to store
         self.MOVEMENT_THRESHOLD = 5  # Maximum allowed movement in pixels

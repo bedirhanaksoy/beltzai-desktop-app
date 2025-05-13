@@ -12,7 +12,6 @@ from desktop import SequenceApp
 MAIN_PATH = Path(__file__).resolve()
 resources_path = MAIN_PATH.resolve().parent.parent / "resources"
 
-models_path = str(resources_path / "models/right_part_medium.pt")
 right_base_image_path = str(resources_path / "base_images/right_base_image.png")
 left_base_image_path = str(resources_path / "base_images/left_base_image.png")
 
