@@ -49,6 +49,7 @@ class SequenceApp(tk.Tk):
         self.resizable(False, False)
         self.cap = None
         self.update_frame_id = None
+        self.selected_model_path = None  # Add instance variable for selected model path
         self._build_login_screen()
 
     def _build_login_screen(self):
@@ -232,9 +233,6 @@ class SequenceApp(tk.Tk):
         if model_files:
             self.selected_model.set(model_files[0])
 
-        global selected_model_path
-        selected_model_path = str(models_folder / self.selected_model.get())
-        print(f"Selected model path: {selected_model_path}")
         # Submit button
         submit_button = tk.Button(
             model_frame,
@@ -267,11 +265,10 @@ class SequenceApp(tk.Tk):
 
     def _confirm_model_selection(self):
         """Handle model selection confirmation."""
-        
-        global selected_model_path
-        selected_model_path = resources_path / "models" / self.selected_model.get()
-        print(f"Selected model: {selected_model_path}")
-        # Proceed to the next screen or save the selected model path
+        # Store the selected model path in an instance variable
+        self.selected_model_path = resources_path / "models" / self.selected_model.get()
+        print(f"Selected model: {self.selected_model_path}")
+        # Proceed to the next screen
         self._build_base_image_screen()
         #self._build_operation_screen()
 
@@ -290,10 +287,11 @@ class SequenceApp(tk.Tk):
         operation_frame = tk.Frame(self, width=800, height=600)
         operation_frame.pack(fill="both", expand=True)
 
+        # Use the instance variable for the model path
         self.detection_and_comparison = ConveyorBeltOperations(
             tkinter_frame=operation_frame,
             end_session_callback=self._end_session,
-            model_path=selected_model_path,
+            model_path=self.selected_model_path,  # Updated to use instance variable
             right_base_image_path=right_base_image_path,
             left_base_image_path=left_base_image_path
         )
