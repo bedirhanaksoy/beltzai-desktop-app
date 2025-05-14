@@ -104,7 +104,7 @@ class SequenceApp(tk.Tk):
         if self.cap:
             self.cap.release()
 
-        self.cap = cv2.VideoCapture(0)
+        self.cap = cv2.VideoCapture(2)
 
         self.video_label = tk.Label(self)
         self.video_label.place(x=0, y=0, width=800, height=600)
@@ -147,7 +147,7 @@ class SequenceApp(tk.Tk):
         )
         self.end_button.place(x=10, y=550)
 
-        self.bind('<t>', self._skip_capturing_base_image)
+        self.bind('<t>', self._capture_base_image)
         self._update_frame()
 
     def _skip_capturing_base_image(self, event=None):

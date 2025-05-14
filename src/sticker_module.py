@@ -8,7 +8,7 @@ resources_path = MAIN_PATH.resolve().parent.parent / "resources"
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 left_model = YOLO(str(resources_path / "models/left_sticker.pt")).to(device)
-right_model = YOLO(str(resources_path / "models/right_sticker.pt")).to(device)
+# right_model = YOLO(str(resources_path / "models/right_sticker.pt")).to(device)
 
 def iou(box1, box2):
     x1 = max(box1[0], box2[0])
@@ -54,23 +54,11 @@ def resolve_sticker_conflicts(left_boxes, right_boxes, iou_threshold=0.5):
 
     return resolved_left, resolved_right
 
-def detect_stickers(frame, part_box):
-    left_results = left_model(frame)[0].boxes
-    right_results = right_model(frame)[0].boxes
+# Conflict resolution removed because we only use left stickers now
+# def resolve_sticker_conflicts(left_boxes, right_boxes, iou_threshold=0.5):
+#     ...
 
-    left_filtered = []
-    right_filtered = []
-
-    for box in left_results:
-        coords = box.xyxy[0].cpu().numpy()
-        if box_inside(part_box, coords):
-            left_filtered.append(box)
-
-    for box in right_results:
-        coords = box.xyxy[0].cpu().numpy()
-        if box_inside(part_box, coords):
-            right_filtered.append(box)
-
-    left_resolved, right_resolved = resolve_sticker_conflicts(left_filtered, right_filtered)
-    return left_resolved, right_resolved
-    #return left_filtered, right_filtered
+def detect_stickers(frame):
+    # Use predict() instead of track() for speed
+    left_results = left_model.predict(frame, verbose=False)[0].boxes
+    return left_results

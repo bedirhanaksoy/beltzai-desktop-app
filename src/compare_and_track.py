@@ -26,7 +26,7 @@ class Comparer:
         self.logger = Logger(model_name=model_name)
         self.logger.init()
         #self.cap = cv2.VideoCapture(test_video_path)
-        self.cap = cv2.VideoCapture(0)
+        self.cap = cv2.VideoCapture(2)
 
         ret, self.frame = self.cap.read()
         if not ret:
@@ -66,7 +66,7 @@ class Comparer:
         self.is_left_box_empty = True
         self.is_right_box_empty = True
 
-        self.STILL_THRESHOLD = 0.2  # Time threshold for considering object still (seconds)
+        self.STILL_THRESHOLD = 0.05  # Time threshold for considering object still (seconds)
         self.TEST_DURATION = 0.2    # Duration for running tests (seconds)
         self.warning_threshold = 0.8  # Threshold for warning if similarity score is below this value
 
@@ -78,6 +78,7 @@ class Comparer:
         self.right_base = None
         self.left_base = None
         self.yolo_detections = None
+        self.sticker_warning_timestamp = 0  # For 1-second left-sticker-on-right-part alert
 
     def load_base_images(self):
         """Load base images"""
