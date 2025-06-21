@@ -55,34 +55,6 @@ class SequenceApp(tk.Tk):
         self._build_entrance_screen()
         # self._build_info_before_taking_base_images_screen()
         # self._build_taking_base_images_screen()
-    def _build_login_screen(self):
-        self._prepare_screen_transition()
-
-        login_frame = tk.Frame(self, bg="white", width=800, height=600)
-        login_frame.pack(fill="both", expand=True)
-
-        center_frame = tk.Frame(login_frame, bg="white")
-        center_frame.place(relx=0.5, rely=0.5, anchor="center")
-
-        title_label = tk.Label(center_frame, text="Enter Session ID:", bg="white", font=("Arial", 18))
-        title_label.pack(pady=12)
-
-        self.session_entry = tk.Entry(center_frame, font=("Arial", 16), width=32)
-        self.session_entry.pack(pady=12, ipady=6)
-
-        submit_button = tk.Button(
-            center_frame,
-            text="Submit",
-            command=self._validate_session,
-            bg="#007BFF",
-            fg="white",
-            font=("Arial", 14, "bold"),
-            relief="raised",
-            bd=4,
-            padx=24,
-            pady=12
-        )
-        submit_button.pack(pady=24)
 
     def _validate_session(self):
         self._build_model_selection_screen()
@@ -177,55 +149,6 @@ class SequenceApp(tk.Tk):
         # === Bottom Horizontal Line ===
         bottom_line = tk.Frame(self, bg="#374151", height=3)
         bottom_line.pack(fill="x", side="bottom", pady=(0, 50))
-
-    def _build_base_image_screen(self):
-        self._prepare_screen_transition()
-
-        self.cap = cv2.VideoCapture(2)
-
-        self.video_label = tk.Label(self)
-        self.video_label.place(x=0, y=0, width=800, height=600)
-
-        self.instruction = tk.Label(
-            self,
-            text="Place objects on the boxes and press 't' to take base images",
-            bg='black',
-            fg='white',
-            font=("Arial", 14)
-        )
-        self.instruction.place(x=250, y=10)
-
-        self.next_button = tk.Button(
-            self,
-            text="Next",
-            state=tk.DISABLED,
-            command=self._build_operation_screen,
-            bg="#28a745",
-            fg="white",
-            font=("Arial", 12, "bold"),
-            relief="raised",
-            bd=4,
-            padx=20,
-            pady=10
-        )
-        self.next_button.place(x=700, y=500)
-
-        self.end_button = tk.Button(
-            self,
-            text="End Session",
-            command=self._end_session,
-            bg="#dc3545",
-            fg="white",
-            font=("Arial", 12, "bold"),
-            relief="raised",
-            bd=4,
-            padx=20,
-            pady=10
-        )
-        self.end_button.place(x=10, y=550)
-
-        self.bind('<t>', self._capture_base_image)
-        self._update_frame()
 
     def _skip_capturing_base_image(self, event=None):
         self.next_button.config(state=tk.NORMAL)
