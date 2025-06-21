@@ -46,15 +46,15 @@ class SequenceApp(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("Sequence App")
-        self.geometry("800x600")
+        self.geometry("1000x1000")
         self.resizable(False, False)
         self.cap = None
         self.update_frame_id = None
         self.selected_model_path = None  # Add instance variable for selected model path
         # self._build_login_screen()
-        # self._build_entrance_screen()
-        self._build_info_before_taking_base_images_screen()
-
+        self._build_entrance_screen()
+        # self._build_info_before_taking_base_images_screen()
+        # self._build_taking_base_images_screen()
     def _build_login_screen(self):
         self._prepare_screen_transition()
 
@@ -254,7 +254,7 @@ class SequenceApp(tk.Tk):
         if not self.cap or not self.cap.isOpened():
             messagebox.showerror("Capture Error", "Camera not available.")
             return
-
+        
         ret, frame = self.cap.read()
         if not ret:
             messagebox.showerror("Capture Error", "Failed to capture image.")
@@ -264,7 +264,8 @@ class SequenceApp(tk.Tk):
             crop_and_save(boxes[0], frame, right_base_image_path)
             crop_and_save(boxes[1], frame, left_base_image_path)
 
-        self.next_button.config(state=tk.NORMAL)
+        #self.next_button.config(state=tk.NORMAL)
+        self._build_info_after_taking_base_images_screen(ret, frame)
 
     def _build_model_selection_screen(self):
         """Build the model selection screen."""
@@ -328,7 +329,7 @@ class SequenceApp(tk.Tk):
         back_button = tk.Button(
             model_frame,
             text="Back",
-            command=self._build_base_image_screen,
+            command=self._build_entrance_screen,
             bg="#dc3545",
             fg="white",
             font=("Arial", 14, "bold"),
@@ -345,8 +346,9 @@ class SequenceApp(tk.Tk):
         self.selected_model_path = resources_path / "models" / self.selected_model.get()
         print(f"Selected model: {self.selected_model_path}")
         # Proceed to the next screen
-        self._build_base_image_screen()
+        #self._build_base_image_screen()
         #self._build_operation_screen()
+        self._build_info_before_taking_base_images_screen()
 
     def _build_operation_screen(self):
         self._prepare_screen_transition()
@@ -418,6 +420,140 @@ class SequenceApp(tk.Tk):
         for widget in self.winfo_children():
             widget.destroy()
 
+    def _build_info_after_taking_base_images_screen(self, ret, frame):
+        """Display success after taking base images."""
+        
+        taken_frame = frame
+        taken_ret = ret
+
+        self._prepare_screen_transition()
+
+        # Set window properties
+        self.configure(bg="#E9EBFF")
+        self.geometry("1000x1000")
+        self.title("BeltzAI Vision Control Yazılımı")
+
+        # Setup datetime display using the modular method
+        _, _, _, _ = self._setup_datetime_display()
+
+        # Page indicator (4/5)
+        page_indicator = tk.Label(self, text="4/5", font=("Arial", 18, "bold"), bg="#E9EBFF")
+        page_indicator.place(relx=1.0, rely=0.0, anchor="ne", x=-20, y=20)
+
+        # Main Content Area
+        content_frame = tk.Frame(self, bg="#E9EBFF")
+        content_frame.pack(expand=True, fill="both", padx=40, pady=10)
+        
+        # Separator Line above instructions
+        top_line = tk.Frame(content_frame, height=2, bg="#D0D5E3")
+        top_line.pack(fill="x", pady=(0, 2))
+
+        # Instruction Box (Green)
+        instruction_box = tk.Frame(
+            content_frame, bg="#D1FAE5", highlightbackground="#D0D5E3", highlightthickness=1
+        )
+        instruction_box.pack(fill="x", pady=(0, 20))
+
+        instruction_text_1 = "•  Parçaların fotoğrafları başarıyla çekildi."
+        instruction_label_1 = tk.Label(
+            instruction_box,
+            text=instruction_text_1,
+            font=("Arial", 14, "bold"),
+            bg="#D1FAE5",
+            fg="#065F46",
+            justify="left",
+        )
+        instruction_label_1.pack(anchor="w", padx=20, pady=(20, 5))
+
+        instruction_text_2 = "•  Çekilen görüntü aşağıdadır."
+        instruction_label_2 = tk.Label(
+            instruction_box,
+            text=instruction_text_2,
+            font=("Arial", 14, "bold"),
+            bg="#D1FAE5",
+            fg="#065F46",
+            justify="left",
+        )
+        instruction_label_2.pack(anchor="w", padx=20, pady=(5, 20))
+
+        # Second Instruction Box before buttons
+        instruction_box_2 = tk.Frame(
+            self, bg="white", highlightbackground="#D0D5E3", highlightthickness=1
+        )
+        instruction_box_2.pack(fill="x", padx=40, pady=(0, 10))
+
+        # Image Taken Area
+        image_area = tk.Label(
+            content_frame,
+            bg="#E9EBFF",  # A light gray color
+            fg="#E9EBFF"   # A darker gray for the text
+        )
+        image_area.pack(expand=True, fill="both")
+
+        if taken_ret:
+            for i, box in enumerate(boxes):
+                (x1, y1), (x2, y2) = box
+                cv2.rectangle(taken_frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
+                label = "Right Box" if i == 0 else "Left Box"
+                cv2.putText(taken_frame, label, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
+
+            img = cv2.cvtColor(taken_frame, cv2.COLOR_BGR2RGB)
+            img = Image.fromarray(img)
+            imgtk = ImageTk.PhotoImage(image=img)
+            image_area.imgtk = imgtk
+            image_area.config(image=imgtk)
+
+        instruction_text_3 = "•  Tekrar fotoğraf çekmek için geri butonuna basın. Devam etmek için devam butonuna basın."
+        instruction_label_3 = tk.Label(
+            instruction_box_2,
+            text=instruction_text_3,
+            font=("Arial", 13),
+            bg="white",
+            fg="#1F2937",
+            justify="left",
+            anchor="w",
+        )
+        instruction_label_3.pack(anchor="w", padx=20, pady=15)
+
+        # Footer with buttons
+        footer_frame = tk.Frame(self, bg="#E9EBFF")
+        footer_frame.pack(fill="x", padx=40, pady=(20, 20))
+
+        # 'Geri' Button
+        geri_button = tk.Button(
+            footer_frame,
+            text="Geri",
+            bg="#F87171",
+            fg="white",
+            font=("Arial", 11, "bold"),
+            relief="raised",
+            bd=2,
+            padx=30,
+            pady=5,
+            command=self._build_taking_base_images_screen
+        )
+        geri_button.pack(side="left")
+
+        # 'Devam' Button
+        devam_button = tk.Button(
+            footer_frame,
+            text="Devam",
+            bg="#28a745",
+            fg="white",
+            font=("Arial", 11, "bold"),
+            relief="raised",
+            bd=2,
+            padx=30,
+            pady=5,
+            command=self._build_operation_screen
+        )
+        devam_button.pack(side="right")
+
+        # Bottom horizontal line
+        bottom_line = tk.Frame(self, bg="#374151", height=3)
+        bottom_line.pack(fill="x", side="bottom", pady=(0, 50))
+
+
     def _build_info_before_taking_base_images_screen(self):
         """Display instructions before taking base images."""
         self._prepare_screen_transition()
@@ -436,7 +572,7 @@ class SequenceApp(tk.Tk):
         
         # Main content card
         main_card = tk.Frame(self, bg="white", bd=1, relief="solid")
-        main_card.pack(expand=True, fill="both", padx=120, pady=(80, 80))
+        main_card.pack(fill="both", expand=False, padx=120, pady=(80, 20))          
         
         # Instructions text with bullet points
         bullet1 = tk.Label(
@@ -487,13 +623,108 @@ class SequenceApp(tk.Tk):
             padx=20,
             pady=10,
             relief="raised",
-            command=self._build_base_image_screen
+            command=self._build_taking_base_images_screen
         )
         continue_button.pack(side="right", padx=40)
         
         # Bottom horizontal line
         bottom_line = tk.Frame(self, bg="#374151", height=3)
         bottom_line.pack(fill="x", side="bottom", pady=(0, 50))
+
+    def _build_taking_base_images_screen(self):
+        """
+        Builds the UI for the base image capture step (3/5).
+        """
+        
+        # Assumes a _prepare_screen_transition() method exists to clear the window
+        self._prepare_screen_transition()
+
+        # Set window properties
+        self.configure(bg="#E9EBFF")
+        self.geometry("1000x1000")
+        self.title("BeltzAI Vision Control Yazılımı")
+
+        # Setup datetime display using the modular method
+        _, _, _, _ = self._setup_datetime_display()
+
+        # Page indicator (3/5)
+        page_indicator = tk.Label(self, text="3/5", font=("Arial", 18, "bold"), bg="#E9EBFF")
+        page_indicator.place(relx=1.0, rely=0.0, anchor="ne", x=-20, y=20)
+
+        # 3. Main Content Area
+        # This frame holds the instructions and video input area
+        content_frame = tk.Frame(self, bg="#E9EBFF")
+        content_frame.pack(expand=True, fill="both", padx=40, pady=10)
+        
+        # Separator Line above instructions
+        top_line = tk.Frame(content_frame, height=2, bg="#D0D5E3")
+        top_line.pack(fill="x", pady=(0, 2))
+
+        # Instruction Box
+        instruction_box = tk.Frame(
+            content_frame, bg="white", highlightbackground="#D0D5E3", highlightthickness=1
+        )
+        instruction_box.pack(fill="x", pady=(0, 20))
+
+        instruction_text_1 = "•  Sağ ve sol kutuların içine parçaları yerleştirin"
+        instruction_label_1 = tk.Label(
+            instruction_box,
+            text=instruction_text_1,
+            font=("Arial", 14, "bold"),
+            bg="white",
+            justify="left",
+        )
+        instruction_label_1.pack(anchor="w", padx=20, pady=(20, 5))
+
+        instruction_text_2 = "•  't' tuşuna basarak fotoğraflarını çekin."
+        instruction_label_2 = tk.Label(
+            instruction_box,
+            text=instruction_text_2,
+            font=("Arial", 14, "bold"),
+            bg="white",
+            justify="left",
+        )
+        instruction_label_2.pack(anchor="w", padx=20, pady=(5, 20))
+
+        # Video Input Area
+        self.cap = cv2.VideoCapture(2)
+        
+        video_area = tk.Label(
+            content_frame,
+            bg="#E9EBFF",  # A light gray color
+            fg="#E9EBFF"   # A darker gray for the text
+        )
+        video_area.pack(expand=True, fill="both")
+        
+        # Store reference if you want to update it with a live feed
+        self.video_label = video_area 
+
+        footer_frame = tk.Frame(self, bg="#E9EBFF")
+        footer_frame.pack(fill="x", padx=40, pady=(20, 20))
+
+        # 'Geri' Button
+        # Note: True rounded corners require images or a canvas. 
+        # This styles the standard button to match the color scheme.
+        geri_button = tk.Button(
+            footer_frame,
+            text="Geri",
+            bg="#F87171",  # A matching red color
+            fg="white",
+            font=("Arial", 11, "bold"),
+            relief="raised",
+            bd=2,
+            padx=30,
+            pady=5,
+            command=self._build_info_before_taking_base_images_screen
+        )
+        geri_button.pack(side="left")
+
+        # Bottom horizontal line
+        bottom_line = tk.Frame(self, bg="#374151", height=3)
+        bottom_line.pack(fill="x", side="bottom", pady=(0, 50))
+        self.bind('<t>', self._capture_base_image)
+        self._update_frame()
+
 
 
 if __name__ == "__main__":
