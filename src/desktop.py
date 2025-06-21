@@ -8,6 +8,7 @@ from compare_and_track import Comparer
 from detection_and_comparison import ConveyorBeltOperations
 import time
 import os  # Add this import to handle file operations
+from datetime import datetime
 
 SERVER_URL = "http://example.com/validate_session"  # Replace with your actual endpoint
 
@@ -50,18 +51,12 @@ class SequenceApp(tk.Tk):
         self.cap = None
         self.update_frame_id = None
         self.selected_model_path = None  # Add instance variable for selected model path
-        self._build_login_screen()
+        # self._build_login_screen()
+        # self._build_entrance_screen()
+        self._build_info_before_taking_base_images_screen()
 
     def _build_login_screen(self):
-        if self.cap:
-            self.cap.release()
-            self.cap = None
-        if self.update_frame_id:
-            self.after_cancel(self.update_frame_id)
-            self.update_frame_id = None
-
-        for widget in self.winfo_children():
-            widget.destroy()
+        self._prepare_screen_transition()
 
         login_frame = tk.Frame(self, bg="white", width=800, height=600)
         login_frame.pack(fill="both", expand=True)
@@ -94,15 +89,97 @@ class SequenceApp(tk.Tk):
         #self._build_base_image_screen()
         return
 
-    def _build_base_image_screen(self):
-        if self.update_frame_id:
-            self.after_cancel(self.update_frame_id)
-            self.update_frame_id = None
+    def _setup_datetime_display(self):
+        """Create and configure the date/time display at the top of the screen"""
+        # === Top Bar (Date & Time) ===
+        top_bar = tk.Frame(self, bg="#E9EBFF")
+        top_bar.pack(fill="x", pady=(10, 0))
 
-        for widget in self.winfo_children():
-            widget.destroy()
-        if self.cap:
-            self.cap.release()
+        date_label = tk.Label(top_bar, text="", font=("Arial", 10), bg="#E9EBFF")
+        date_label.pack(side="left", pady=(20, 10), padx=(20, 10))
+
+        time_label = tk.Label(top_bar, text="", font=("Arial", 10), bg="#E9EBFF")
+        time_label.pack(side="left", pady=(20, 10), padx=(0, 20))
+
+        # === Top Horizontal Line ===
+        top_line = tk.Frame(self, bg="#374151", height=3)
+        top_line.pack(fill="x", pady=(30, 0))
+
+        # Initial update and start the recurring updates
+        self._update_datetime(date_label, time_label)
+
+        return top_bar, date_label, time_label, top_line
+
+    def _update_datetime(self, date_label, time_label):
+        """Update date and time labels and schedule the next update"""
+        # Check if the labels still exist before updating them
+        try:
+            if date_label.winfo_exists() and time_label.winfo_exists():
+                current_time = datetime.now()
+                date_str = current_time.strftime("📅 %d.%m.%Y")
+                time_str = current_time.strftime("⏰ %H:%M:%S")
+                
+                date_label.config(text=date_str)
+                time_label.config(text=time_str)
+                
+                # Schedule next update
+                self.datetime_update_id = self.after(1000, lambda: self._update_datetime(date_label, time_label))
+        except tk.TclError:
+            # The labels have been destroyed, don't reschedule
+            pass
+
+    def _build_entrance_screen(self):
+        """GÜNEŞ PLASTİK | BeltzAI Vision Control Yazılımı giriş ekranı"""
+        
+        self._prepare_screen_transition()
+
+        # Set window properties
+        self.configure(bg="#E9EBFF")
+        self.geometry("1000x600")
+        self.title("BeltzAI Vision Control Yazılımı")
+
+        # Setup datetime display using the modular method
+        _, _, _, _ = self._setup_datetime_display()
+
+        # === Main Content Frame ===
+        main_frame = tk.Frame(self, bg="#E9EBFF")
+        main_frame.pack(expand=True, fill="both", pady=40, padx=40)
+
+        # === Left Card ===
+        left_card = tk.Frame(main_frame, bg="white", width=500, height=220, bd=2, relief="groove")
+        left_card.pack(side="left", expand=True, padx=40)
+        left_card.pack_propagate(False)
+
+        tk.Label(left_card, text="GÜNEŞ PLASTİK", font=("Arial", 20, "bold"), bg="white").pack(anchor="w", padx=20, pady=(20, 10))
+        tk.Label(left_card, text="BeltzAI Vision Control\nYazılımı", font=("Arial", 18, "bold"), bg="white", justify="left").pack(anchor="w", padx=20)
+
+        # === Right Card ===
+        right_card = tk.Frame(main_frame, bg="white", width=300, height=220, bd=2, relief="groove")
+        right_card.pack(side="right", expand=True, padx=40)
+        right_card.pack_propagate(False)
+
+        tk.Label(right_card, text="Kullanıcı Numarası", bg="white", font=("Arial", 10)).pack(anchor="w", padx=20, pady=(30, 5))
+
+        self.session_entry = tk.Entry(right_card, font=("Arial", 11))
+        self.session_entry.insert(0, "Ör: 123123")
+        self.session_entry.pack(padx=20, fill="x")
+
+        giris_btn = tk.Button(
+            right_card,
+            text="Giriş",
+            bg="#32CD32",
+            fg="white",
+            font=("Arial", 11, "bold"),
+            command=self._validate_session
+        )
+        giris_btn.pack(anchor="e", padx=20, pady=20)
+
+        # === Bottom Horizontal Line ===
+        bottom_line = tk.Frame(self, bg="#374151", height=3)
+        bottom_line.pack(fill="x", side="bottom", pady=(0, 50))
+
+    def _build_base_image_screen(self):
+        self._prepare_screen_transition()
 
         self.cap = cv2.VideoCapture(2)
 
@@ -191,9 +268,8 @@ class SequenceApp(tk.Tk):
 
     def _build_model_selection_screen(self):
         """Build the model selection screen."""
-        # Clear any existing widgets
-        for widget in self.winfo_children():
-            widget.destroy()
+        
+        self._prepare_screen_transition()
 
         # Create a frame for the model selection screen
         model_frame = tk.Frame(self, bg="white", width=800, height=600)
@@ -273,16 +349,7 @@ class SequenceApp(tk.Tk):
         #self._build_operation_screen()
 
     def _build_operation_screen(self):
-        if self.update_frame_id:
-            self.after_cancel(self.update_frame_id)
-            self.update_frame_id = None
-
-        for widget in self.winfo_children():
-            widget.destroy()
-
-        if self.cap:
-            self.cap.release()
-            self.cap = None
+        self._prepare_screen_transition()
 
         operation_frame = tk.Frame(self, width=800, height=600)
         operation_frame.pack(fill="both", expand=True)
@@ -303,11 +370,130 @@ class SequenceApp(tk.Tk):
         self._build_login_screen()
 
     def on_closing(self):
+        if hasattr(self, 'datetime_update_id') and self.datetime_update_id is not None:
+            try:
+                self.after_cancel(self.datetime_update_id)
+            except ValueError:
+                pass
+    
         if self.update_frame_id:
-            self.after_cancel(self.update_frame_id)
+            try:
+                self.after_cancel(self.update_frame_id)
+            except ValueError:
+                pass
+    
+        if hasattr(self, 'detection_and_comparison') and self.detection_and_comparison.is_running:
+            self.detection_and_comparison._stop_process()
+    
         if self.cap:
             self.cap.release()
+    
         self.destroy()
+
+    def _prepare_screen_transition(self):
+        """Prepare for screen transition by cleaning up resources"""
+        # Cancel datetime updates
+        if hasattr(self, 'datetime_update_id') and self.datetime_update_id is not None:
+            try:
+                self.after_cancel(self.datetime_update_id)
+            except ValueError:
+                # Handle case where ID is not valid
+                pass
+            self.datetime_update_id = None
+            
+        # Cancel frame updates
+        if self.update_frame_id:
+            try:
+                self.after_cancel(self.update_frame_id)
+            except ValueError:
+                pass
+            self.update_frame_id = None
+            
+        # Release camera if active
+        if self.cap:
+            self.cap.release()
+            self.cap = None
+            
+        # Clear window
+        for widget in self.winfo_children():
+            widget.destroy()
+
+    def _build_info_before_taking_base_images_screen(self):
+        """Display instructions before taking base images."""
+        self._prepare_screen_transition()
+        
+        # Set window properties
+        self.configure(bg="#E9EBFF")
+        self.geometry("1000x600")
+        self.title("BeltzAI Vision Control Yazılımı")
+        
+        # Setup datetime display using the modular method
+        _, _, _, _ = self._setup_datetime_display()
+        
+        # Page indicator (2/5)
+        page_indicator = tk.Label(self, text="2/5", font=("Arial", 18, "bold"), bg="#E9EBFF")
+        page_indicator.place(relx=0.95, rely=0.1, anchor="center")
+        
+        # Main content card
+        main_card = tk.Frame(self, bg="white", bd=1, relief="solid")
+        main_card.pack(expand=True, fill="both", padx=120, pady=(80, 80))
+        
+        # Instructions text with bullet points
+        bullet1 = tk.Label(
+            main_card,
+            text="• Sonraki ekranda sağ ve sol kutuların içine parçaları yerleştirin",
+            font=("Arial", 16),
+            bg="white",
+            anchor="w",
+            justify="left"
+        )
+        bullet1.pack(fill="x", padx=40, pady=(60, 20), anchor="w")
+        
+        bullet2 = tk.Label(
+            main_card,
+            text="• Sonrasında 'T' tuşuna basarak fotoğraflarını çekin.",
+            font=("Arial", 16),
+            bg="white",
+            anchor="w",
+            justify="left"
+        )
+        bullet2.pack(fill="x", padx=40, pady=(0, 60), anchor="w")
+        
+        # Button container
+        button_frame = tk.Frame(main_card, bg="white")
+        button_frame.pack(fill="x", pady=(20, 40))
+        
+        # Back button
+        back_button = tk.Button(
+            button_frame,
+            text="Geri",
+            bg="#FF6B6B",
+            fg="white",
+            font=("Arial", 12, "bold"),
+            padx=20,
+            pady=10,
+            relief="raised",
+            command=self._build_model_selection_screen
+        )
+        back_button.pack(side="left", padx=40)
+        
+        # Continue button
+        continue_button = tk.Button(
+            button_frame,
+            text="Devam",
+            bg="#4CD964",
+            fg="white",
+            font=("Arial", 12, "bold"),
+            padx=20,
+            pady=10,
+            relief="raised",
+            command=self._build_base_image_screen
+        )
+        continue_button.pack(side="right", padx=40)
+        
+        # Bottom horizontal line
+        bottom_line = tk.Frame(self, bg="#374151", height=3)
+        bottom_line.pack(fill="x", side="bottom", pady=(0, 50))
 
 
 if __name__ == "__main__":
