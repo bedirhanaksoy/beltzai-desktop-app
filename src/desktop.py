@@ -292,7 +292,7 @@ class SequenceApp(tk.Tk):
     def _end_session(self):
         if hasattr(self, 'detection_and_comparison') and self.detection_and_comparison.is_running:
             self.detection_and_comparison._stop_process()
-        self._build_login_screen()
+        self._build_entrance_screen()
 
     def on_closing(self):
         if hasattr(self, 'datetime_update_id') and self.datetime_update_id is not None:
