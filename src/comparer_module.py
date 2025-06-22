@@ -4,7 +4,7 @@ from collections import deque
 import time
 from ultralytics import YOLO
 from pathlib import Path
-from logger import Logger
+from logger_module import Logger
 
 # TODO According to how model name is stored, change the model name for that session
 
@@ -19,14 +19,14 @@ left_base_image_path = str(resources_path / "base_images/left_base_image.png")
 test_video_path = str(resources_path / "test_video/test_video.webm")
 
 class Comparer:
-    def __init__(self, camera_id=2, model_path=None):
+    def __init__(self, camera_id=0, model_path=None):
         
         model_name = Path(model_path).stem
         print(f"Model name: {model_name}")
         self.logger = Logger(model_name=model_name)
         self.logger.init()
         #self.cap = cv2.VideoCapture(test_video_path)
-        self.cap = cv2.VideoCapture(2)
+        self.cap = cv2.VideoCapture(0)
 
         ret, self.frame = self.cap.read()
         if not ret:

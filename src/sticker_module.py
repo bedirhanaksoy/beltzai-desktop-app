@@ -8,7 +8,7 @@ resources_path = MAIN_PATH.resolve().parent.parent / "resources"
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 left_model = YOLO(str(resources_path / "models/left_sticker.pt")).to(device)
-# right_model = YOLO(str(resources_path / "models/right_sticker.pt")).to(device)
+right_model = YOLO(str(resources_path / "models/right_sticker.pt")).to(device)
 
 def iou(box1, box2):
     x1 = max(box1[0], box2[0])
@@ -39,6 +39,7 @@ def resolve_sticker_conflicts(left_boxes, right_boxes, iou_threshold=0.5):
             if score > best_overlap:
                 best_overlap = score
                 best_j = j
+
         if best_overlap > iou_threshold:
             if lbox.conf[0] > right_boxes[best_j].conf[0]:
                 resolved_left.append(lbox)
@@ -54,11 +55,15 @@ def resolve_sticker_conflicts(left_boxes, right_boxes, iou_threshold=0.5):
 
     return resolved_left, resolved_right
 
-# Conflict resolution removed because we only use left stickers now
-# def resolve_sticker_conflicts(left_boxes, right_boxes, iou_threshold=0.5):
-#     ...
-
-def detect_stickers(frame):
-    # Use predict() instead of track() for speed
+def detect_stickers(frame, conf_threshold=0.6, iou_threshold=0.5):
     left_results = left_model.predict(frame, verbose=False)[0].boxes
-    return left_results
+    right_results = right_model.predict(frame, verbose=False)[0].boxes
+
+    left_filtered = [box for box in left_results if box.conf[0] >= conf_threshold]
+    right_filtered = [box for box in right_results if box.conf[0] >= conf_threshold]
+
+    # Resolve overlapping sticker detections
+    #resolved_left, resolved_right = resolve_sticker_conflicts(left_filtered, right_filtered, iou_threshold)
+
+    #return resolved_left, resolved_right
+    return left_filtered, right_filtered

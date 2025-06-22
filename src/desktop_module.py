@@ -4,8 +4,8 @@ import requests
 import cv2
 from PIL import Image, ImageTk
 from pathlib import Path
-from compare_and_track import Comparer
-from detection_and_comparison import ConveyorBeltOperations
+from comparer_module import Comparer
+from session_operator import SessionOperator
 import time
 import os  # Add this import to handle file operations
 from datetime import datetime
@@ -46,7 +46,7 @@ class SequenceApp(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("Sequence App")
-        self.geometry("1000x1000")
+        self.geometry("1000x800")
         self.resizable(False, False)
         self.cap = None
         self.update_frame_id = None
@@ -67,10 +67,10 @@ class SequenceApp(tk.Tk):
         top_bar = tk.Frame(self, bg="#E9EBFF")
         top_bar.pack(fill="x", pady=(10, 0))
 
-        date_label = tk.Label(top_bar, text="", font=("Arial", 10), bg="#E9EBFF")
+        date_label = tk.Label(top_bar, text="", font=("Arial", 15), bg="#E9EBFF")
         date_label.pack(side="left", pady=(20, 10), padx=(20, 10))
 
-        time_label = tk.Label(top_bar, text="", font=("Arial", 10), bg="#E9EBFF")
+        time_label = tk.Label(top_bar, text="", font=("Arial", 15), bg="#E9EBFF")
         time_label.pack(side="left", pady=(20, 10), padx=(0, 20))
 
         # === Top Horizontal Line ===
@@ -107,7 +107,7 @@ class SequenceApp(tk.Tk):
 
         # Set window properties
         self.configure(bg="#E9EBFF")
-        self.geometry("1000x600")
+        # self.geometry("1000x600")
         self.title("BeltzAI Vision Control Yazılımı")
 
         # Setup datetime display using the modular method
@@ -191,78 +191,109 @@ class SequenceApp(tk.Tk):
         self._build_info_after_taking_base_images_screen(ret, frame)
 
     def _build_model_selection_screen(self):
-        """Build the model selection screen."""
-        
+        """Build the redesigned model selection screen."""
         self._prepare_screen_transition()
 
-        # Create a frame for the model selection screen
-        model_frame = tk.Frame(self, bg="white", width=800, height=600)
-        model_frame.pack(fill="both", expand=True)
+        self.configure(bg="#E9EBFF")
 
-        # Title label
-        title_label = tk.Label(
-            model_frame,
-            text="Select a Model for Detection",
-            bg="white",
-            font=("Arial", 18, "bold")
-        )
-        title_label.pack(pady=20)
+        # Top bar + line
+        _, _, _, _ = self._setup_datetime_display()
 
-        # List available models
+        page_indicator = tk.Label(self, text="1/5", font=("Arial", 18, "bold"), bg="#E9EBFF")
+        page_indicator.place(relx=1.0, rely=0.0, anchor="ne", x=-20, y=20)
+
+        main_frame = tk.Frame(self, bg="#E9EBFF")
+        main_frame.pack(expand=True, fill="both", padx=40, pady=10)
+
+        left_frame = tk.Frame(main_frame, bg="#E9EBFF")
+        left_frame.pack(side="left", fill="y", expand=True, padx=20)
+
+        right_frame = tk.Frame(main_frame, bg="#E9EBFF")
+        right_frame.pack(side="right", fill="y", expand=True, padx=20)
+
+        separator = tk.Frame(main_frame, bg="#374151", width=2)
+        separator.pack(side="left", fill="y", padx=10)
+
+        # Left: Model list
+        tk.Label(left_frame, text="Model Seçimi", font=("Arial", 16, "bold"), bg="#E9EBFF").pack(anchor="w", pady=10)
+
         models_folder = resources_path / "models"
         model_files = [f for f in os.listdir(models_folder) if f.endswith(".pt")]
 
         if not model_files:
-            no_model_label = tk.Label(
-                model_frame,
-                text="No models found in the 'models' folder.",
-                bg="white",
-                font=("Arial", 14),
-                fg="red"
-            )
-            no_model_label.pack(pady=20)
+            tk.Label(left_frame, text="No models found.", bg="#E9EBFF", font=("Arial", 14), fg="red").pack()
             return
 
-        # Dropdown menu for model selection
-        self.selected_model = tk.StringVar()
-        model_dropdown = tk.OptionMenu(model_frame, self.selected_model, *model_files)
-        model_dropdown.config(font=("Arial", 14), bg="#007BFF", fg="white", relief="raised")
-        model_dropdown.pack(pady=20)
+        self.selected_model = tk.StringVar(value=model_files[0])
 
-        # Set the default value to the first model in the list
-        if model_files:
-            self.selected_model.set(model_files[0])
+        def update_preview(*args):
+            model_name = self.selected_model.get().replace(".pt", "")
+            image_path = resources_path / "models" / "models_images" / f"{model_name}.jpeg"
+            if image_path.exists():
+                img = Image.open(image_path)
+                img = img.resize((200, 200))
+                imgtk = ImageTk.PhotoImage(img)
+                preview_label.config(image=imgtk)
+                preview_label.imgtk = imgtk
+            else:
+                preview_label.config(image="", text="(Resim Yok)")
 
-        # Submit button
-        submit_button = tk.Button(
-            model_frame,
-            text="Confirm Model",
-            command=self._confirm_model_selection,
-            bg="#28a745",
+        for model in model_files:
+            radio = tk.Radiobutton(
+                left_frame,
+                text=model,
+                variable=self.selected_model,
+                value=model,
+                bg="#E9EBFF",
+                font=("Arial", 12),
+                anchor="w",
+                command=update_preview
+            )
+            radio.pack(anchor="w", pady=2)
+
+        # Right: Preview
+        tk.Label(right_frame, text="Seçilen Model", font=("Arial", 16, "bold"), bg="#E9EBFF").pack(anchor="center", pady=10)
+        preview_label = tk.Label(right_frame, bg="#D3D3D3", width=200, height=200)
+        preview_label.pack(pady=10)
+
+        update_preview()
+
+        # Bottom buttons
+        bottom_frame = tk.Frame(self, bg="#E9EBFF")
+        bottom_frame.pack(fill="x", pady=20, padx=40)
+
+        back_btn = tk.Button(
+            bottom_frame,
+            text="Geri",
+            bg="#F87171",
             fg="white",
-            font=("Arial", 14, "bold"),
+            font=("Arial", 11, "bold"),
             relief="raised",
-            bd=4,
-            padx=20,
-            pady=10
+            bd=2,
+            padx=30,
+            pady=5,
+            command=self._build_entrance_screen
         )
-        submit_button.pack(pady=20)
+        back_btn.pack(side="left")
 
-        # Back button
-        back_button = tk.Button(
-            model_frame,
-            text="Back",
-            command=self._build_entrance_screen,
-            bg="#dc3545",
+        next_btn = tk.Button(
+            bottom_frame,
+            text="Devam",
+            bg="#4CD964",
             fg="white",
-            font=("Arial", 14, "bold"),
+            font=("Arial", 11, "bold"),
             relief="raised",
-            bd=4,
-            padx=20,
-            pady=10
+            bd=2,
+            padx=30,
+            pady=5,
+            command=self._confirm_model_selection
         )
-        back_button.pack(pady=10)
+        next_btn.pack(side="right")
 
+        # Bottom line
+        bottom_line = tk.Frame(self, bg="#374151", height=3)
+        bottom_line.pack(fill="x", side="bottom", pady=(0, 50))
+        
     def _confirm_model_selection(self):
         """Handle model selection confirmation."""
         # Store the selected model path in an instance variable
@@ -280,7 +311,7 @@ class SequenceApp(tk.Tk):
         operation_frame.pack(fill="both", expand=True)
 
         # Use the instance variable for the model path
-        self.detection_and_comparison = ConveyorBeltOperations(
+        self.detection_and_comparison = SessionOperator(
             tkinter_frame=operation_frame,
             end_session_callback=self._end_session,
             model_path=self.selected_model_path,  # Updated to use instance variable
@@ -483,7 +514,7 @@ class SequenceApp(tk.Tk):
         
         # Set window properties
         self.configure(bg="#E9EBFF")
-        self.geometry("1000x600")
+        self.geometry("1000x800")
         self.title("BeltzAI Vision Control Yazılımı")
         
         # Setup datetime display using the modular method
@@ -610,7 +641,7 @@ class SequenceApp(tk.Tk):
         instruction_label_2.pack(anchor="w", padx=20, pady=(5, 20))
 
         # Video Input Area
-        self.cap = cv2.VideoCapture(2)
+        self.cap = cv2.VideoCapture(0)
         
         video_area = tk.Label(
             content_frame,
