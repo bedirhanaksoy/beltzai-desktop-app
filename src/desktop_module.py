@@ -202,65 +202,9 @@ class SequenceApp(tk.Tk):
         page_indicator = tk.Label(self, text="1/5", font=("Arial", 18, "bold"), bg="#E9EBFF")
         page_indicator.place(relx=1.0, rely=0.0, anchor="ne", x=-20, y=20)
 
-        main_frame = tk.Frame(self, bg="#E9EBFF")
-        main_frame.pack(expand=True, fill="both", padx=40, pady=10)
-
-        left_frame = tk.Frame(main_frame, bg="#E9EBFF")
-        left_frame.pack(side="left", fill="y", expand=True, padx=20)
-
-        right_frame = tk.Frame(main_frame, bg="#E9EBFF")
-        right_frame.pack(side="right", fill="y", expand=True, padx=20)
-
-        separator = tk.Frame(main_frame, bg="#374151", width=2)
-        separator.pack(side="left", fill="y", padx=10)
-
-        # Left: Model list
-        tk.Label(left_frame, text="Model Seçimi", font=("Arial", 16, "bold"), bg="#E9EBFF").pack(anchor="w", pady=10)
-
-        models_folder = resources_path / "models"
-        model_files = [f for f in os.listdir(models_folder) if f.endswith(".pt")]
-
-        if not model_files:
-            tk.Label(left_frame, text="No models found.", bg="#E9EBFF", font=("Arial", 14), fg="red").pack()
-            return
-
-        self.selected_model = tk.StringVar(value=model_files[0])
-
-        def update_preview(*args):
-            model_name = self.selected_model.get().replace(".pt", "")
-            image_path = resources_path / "models" / "models_images" / f"{model_name}.jpeg"
-            if image_path.exists():
-                img = Image.open(image_path)
-                img = img.resize((200, 200))
-                imgtk = ImageTk.PhotoImage(img)
-                preview_label.config(image=imgtk)
-                preview_label.imgtk = imgtk
-            else:
-                preview_label.config(image="", text="(Resim Yok)")
-
-        for model in model_files:
-            radio = tk.Radiobutton(
-                left_frame,
-                text=model,
-                variable=self.selected_model,
-                value=model,
-                bg="#E9EBFF",
-                font=("Arial", 12),
-                anchor="w",
-                command=update_preview
-            )
-            radio.pack(anchor="w", pady=2)
-
-        # Right: Preview
-        tk.Label(right_frame, text="Seçilen Model", font=("Arial", 16, "bold"), bg="#E9EBFF").pack(anchor="center", pady=10)
-        preview_label = tk.Label(right_frame, bg="#D3D3D3", width=200, height=200)
-        preview_label.pack(pady=10)
-
-        update_preview()
-
-        # Bottom buttons
+        # Bottom buttons (defined early to avoid being overridden by pack order)
         bottom_frame = tk.Frame(self, bg="#E9EBFF")
-        bottom_frame.pack(fill="x", pady=20, padx=40)
+        bottom_frame.pack(side="bottom", fill="x", pady=20, padx=40)
 
         back_btn = tk.Button(
             bottom_frame,
@@ -292,7 +236,66 @@ class SequenceApp(tk.Tk):
 
         # Bottom line
         bottom_line = tk.Frame(self, bg="#374151", height=3)
-        bottom_line.pack(fill="x", side="bottom", pady=(0, 50))
+        bottom_line.pack(side="bottom", fill="x")
+
+        # Main content area
+        main_frame = tk.Frame(self, bg="#E9EBFF")
+        main_frame.pack(expand=True, fill="both", padx=40, pady=10)
+
+        left_frame = tk.Frame(main_frame, bg="#E9EBFF")
+        left_frame.pack(side="left", fill="y", expand=True, padx=20)
+
+        separator = tk.Frame(main_frame, bg="#374151", width=2)
+        separator.pack(side="left", fill="y", padx=10)
+
+        right_frame = tk.Frame(main_frame, bg="#E9EBFF")
+        right_frame.pack(side="right", fill="y", expand=True, padx=20)
+
+        # Left: Model list
+        tk.Label(left_frame, text="Model Seçimi", font=("Arial", 16, "bold"), bg="#E9EBFF").pack(anchor="w", pady=10)
+
+        models_folder = resources_path / "models"
+        model_files = [f for f in os.listdir(models_folder) if f.endswith(".pt")]
+
+        if not model_files:
+            tk.Label(left_frame, text="No models found.", bg="#E9EBFF", font=("Arial", 14), fg="red").pack()
+            return
+
+        self.selected_model = tk.StringVar(value=model_files[0])
+
+        def update_preview(*args):
+            model_name = self.selected_model.get().replace(".pt", "")
+            image_path = resources_path / "models" / "models_images" / f"{model_name}.jpeg"
+            if image_path.exists():
+                img = Image.open(image_path)
+                img = img.resize((200, 200))
+                imgtk = ImageTk.PhotoImage(img)
+                preview_label.config(image=imgtk, text="")
+                preview_label.imgtk = imgtk
+            else:
+                preview_label.config(image="", text="(Resim Yok)")
+
+        for model in model_files:
+            radio = tk.Radiobutton(
+                left_frame,
+                text=model,
+                variable=self.selected_model,
+                value=model,
+                bg="#E9EBFF",
+                font=("Arial", 12),
+                anchor="w",
+                command=update_preview
+            )
+            radio.pack(anchor="w", pady=2)
+
+        # Right: Preview section
+        tk.Label(right_frame, text="Seçilen Model", font=("Arial", 16, "bold"), bg="#E9EBFF").pack(anchor="center", pady=10)
+
+        preview_label = tk.Label(right_frame, bg="#D3D3D3", width=200, height=200)
+        preview_label.pack(pady=10)
+
+        update_preview()
+
         
     def _confirm_model_selection(self):
         """Handle model selection confirmation."""
@@ -306,6 +309,12 @@ class SequenceApp(tk.Tk):
 
     def _build_operation_screen(self):
         self._prepare_screen_transition()
+
+        # Top bar + line
+        _, _, _, _ = self._setup_datetime_display()
+
+        page_indicator = tk.Label(self, text="5/5", font=("Arial", 18, "bold"), bg="#E9EBFF")
+        page_indicator.place(relx=1.0, rely=0.0, anchor="ne", x=-20, y=20)
 
         operation_frame = tk.Frame(self, width=800, height=600)
         operation_frame.pack(fill="both", expand=True)
@@ -457,7 +466,7 @@ class SequenceApp(tk.Tk):
             image_area.imgtk = imgtk
             image_area.config(image=imgtk)
 
-        instruction_text_3 = "•  Tekrar fotoğraf çekmek için geri butonuna basın. Devam etmek için devam butonuna basın."
+        instruction_text_3 = "•  Tekrar fotoğraf çekmek için geri butonuna basın. Oturumu başlatmak için başlat butonuna basın."
         instruction_label_3 = tk.Label(
             instruction_box_2,
             text=instruction_text_3,
@@ -488,10 +497,10 @@ class SequenceApp(tk.Tk):
         )
         geri_button.pack(side="left")
 
-        # 'Devam' Button
-        devam_button = tk.Button(
+        # 'Başlat' Button
+        baslat_button = tk.Button(
             footer_frame,
-            text="Devam",
+            text="Başlat",
             bg="#28a745",
             fg="white",
             font=("Arial", 11, "bold"),
@@ -501,7 +510,7 @@ class SequenceApp(tk.Tk):
             pady=5,
             command=self._build_operation_screen
         )
-        devam_button.pack(side="right")
+        baslat_button.pack(side="right")
 
         # Bottom horizontal line
         bottom_line = tk.Frame(self, bg="#374151", height=3)
@@ -641,7 +650,7 @@ class SequenceApp(tk.Tk):
         instruction_label_2.pack(anchor="w", padx=20, pady=(5, 20))
 
         # Video Input Area
-        self.cap = cv2.VideoCapture(0)
+        self.cap = cv2.VideoCapture(2)
         
         video_area = tk.Label(
             content_frame,

@@ -49,7 +49,7 @@ class SessionOperator:
 
         self.stop_button = tk.Button(
             button_frame,
-            text="Stop",
+            text="Durdur",
             bg="#4856D4",
             fg="white",
             font=("Arial", 11, "bold"),
@@ -63,7 +63,7 @@ class SessionOperator:
 
         self.continue_button = tk.Button(
             button_frame,
-            text="Continue",
+            text="Devam Et",
             bg="#4CD964",
             fg="white",
             font=("Arial", 11, "bold"),
@@ -77,7 +77,7 @@ class SessionOperator:
 
         self.end_button = tk.Button(
             button_frame,
-            text="End Session",
+            text="Oturumu Bitir",
             bg="#FF0000",
             fg="white",
             font=("Arial", 11, "bold"),
