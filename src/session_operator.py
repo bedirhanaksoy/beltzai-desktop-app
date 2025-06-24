@@ -176,6 +176,7 @@ class SessionOperator:
                                 cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
                     if part_side == 1:  # wrong: left sticker on right-labeled part
                         self.comparer.sticker_warning_timestamp = time.time()
+                        self.comparer.sticker_error_type = "left_on_right"
 
             # Check for right stickers inside this part
             for box in all_right_stickers:
@@ -187,11 +188,24 @@ class SessionOperator:
                                 cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
                     if part_side == 2:  # wrong: right sticker on left-labeled part
                         self.comparer.sticker_warning_timestamp = time.time()
+                        self.comparer.sticker_error_type = "right_on_left"
 
             # Draw part bounding box
             cv2.rectangle(self.comparer.frame_display, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 2)
             cv2.putText(self.comparer.frame_display, str(part_side),
                         (int(x1), int(y1) - 10), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
+
+        # Show warning messages if triggered in the last 1 second
+        if hasattr(self.comparer, 'sticker_warning_timestamp') and time.time() - self.comparer.sticker_warning_timestamp < 1:
+            if hasattr(self.comparer, 'sticker_error_type'):
+                if self.comparer.sticker_error_type == "left_on_right":
+                    cv2.putText(self.comparer.frame_display, "ERROR: Left Sticker on Right Part!",
+                                (self.comparer.frame_display.shape[1] // 2 - 250, 60),
+                                cv2.FONT_HERSHEY_SIMPLEX, 1.2, (0, 0, 255), 3, cv2.LINE_AA)
+                elif self.comparer.sticker_error_type == "right_on_left":
+                    cv2.putText(self.comparer.frame_display, "ERROR: Right Sticker on Left Part!",
+                                (self.comparer.frame_display.shape[1] // 2 - 250, 60),
+                                cv2.FONT_HERSHEY_SIMPLEX, 1.2, (0, 0, 255), 3, cv2.LINE_AA)
 
         # Show frame on GUI
         img_rgb = cv2.cvtColor(self.comparer.frame_display, cv2.COLOR_BGR2RGB)
