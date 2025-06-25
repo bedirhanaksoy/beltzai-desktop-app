@@ -19,9 +19,9 @@ right_base_image_path = str(resources_path / "base_images/right_base_image.png")
 left_base_image_path = str(resources_path / "base_images/left_base_image.png")
 
 boxes = [
-    [(50, 200), (230, 380)],  # Right box
-    [(350, 200), (530, 380)]  # Left box
-]
+            [(35, 120), (165, 250)],  # Right box
+            [(450, 120), (580, 250)]   # Left box
+        ]
 
 
 def crop_and_save(box, frame, filename):

@@ -37,8 +37,8 @@ class Comparer:
         self.height, self.width, _ = self.frame.shape
 
         self.boxes = [
-            [(50, 200), (230, 380)],  # Right box
-            [(350, 200), (530, 380)]   # Left box
+            [(35, 120), (165, 250)],  # Right box
+            [(450, 120), (580, 250)]   # Left box
         ]
 
         self.index_side_info = [0] * 1000
