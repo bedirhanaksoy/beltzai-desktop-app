@@ -19,19 +19,41 @@ left_base_image_path = str(resources_path / "base_images/left_base_image.png")
 test_video_path = str(resources_path / "test_video/test_video.webm")
 
 class Comparer:
-    def __init__(self, camera_id=0, model_path=None):
+    def __init__(self, camera_id=2, model_path=None):
         
         model_name = Path(model_path).stem
         print(f"Model name: {model_name}")
         self.logger = Logger(model_name=model_name)
         self.logger.init()
         #self.cap = cv2.VideoCapture(test_video_path)
-        self.cap = cv2.VideoCapture(3)
+        
+        # Try camera index 3 first, then fallback to 0
+        self.cap = cv2.VideoCapture(0)
+        if not self.cap.isOpened():
+            print("Camera index 3 not available, trying camera index 0...")
+            self.cap = cv2.VideoCapture(0)
+        
+        if not self.cap.isOpened():
+            print("Failed to open any camera.")
+            exit()
 
         ret, self.frame = self.cap.read()
         if not ret:
-            print("Failed to grab a frame.")
-            exit()
+            print("Failed to grab a frame from camera.")
+            # Try alternative camera indices
+            for cam_idx in [0, 1, 2, 4]:
+                print(f"Trying camera index {cam_idx}...")
+                self.cap.release()
+                self.cap = cv2.VideoCapture(cam_idx)
+                if self.cap.isOpened():
+                    ret, self.frame = self.cap.read()
+                    if ret:
+                        print(f"Successfully connected to camera index {cam_idx}")
+                        break
+            
+            if not ret:
+                print("Failed to grab a frame from any camera.")
+                exit()
 
         # Get the height and width of the frame
         self.height, self.width, _ = self.frame.shape
@@ -381,6 +403,8 @@ class Comparer:
             self.index_warning_info[track_id] = 0
         
 if __name__ == "__main__":
-    cam = Comparer(camera_id=2, model_path=models_path)
+    # Example usage - you would need to provide a valid model path
+    model_path = str(resources_path / "models" / "right_part_medium.pt")
+    cam = Comparer(camera_id=3, model_path=model_path)
     cam.load_base_images()
-    cam.run()
+    # cam.run()  # Uncomment if you have a run method

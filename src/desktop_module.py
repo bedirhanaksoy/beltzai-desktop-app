@@ -551,7 +551,7 @@ class SequenceApp(ttk.Window):
             ttk.Label(inst_content, text=inst, 
                     font=("Segoe UI", 11)).pack(anchor="w", pady=2)
         
-        # Camera preview with modern styling
+        # Camera preview with modern styling and centering
         camera_container = ttk.Frame(main_container, style="Card.TFrame",
                                    relief="sunken", borderwidth=2)
         camera_container.pack(fill="both", expand=True)
@@ -568,12 +568,18 @@ class SequenceApp(ttk.Window):
                                      foreground="#4CAF50")
         self.camera_status.pack(side="right")
         
-        # Video display
-        self.video_label = ttk.Label(camera_container, relief="flat")
-        self.video_label.pack(expand=True, fill="both", padx=20, pady=(0, 20))
+        # Center frame for video display
+        center_frame = ttk.Frame(camera_container)
+        center_frame.pack(expand=True, fill="both", padx=20, pady=(0, 20))
+        center_frame.grid_rowconfigure(0, weight=1)
+        center_frame.grid_columnconfigure(0, weight=1)
+        
+        # Video display - centered
+        self.video_label = ttk.Label(center_frame, relief="flat")
+        self.video_label.grid(row=0, column=0)
         
         # Initialize camera
-        self.cap = cv2.VideoCapture(3)
+        self.cap = cv2.VideoCapture(0)
         if not self.cap.isOpened():
             self.cap = cv2.VideoCapture(0)  # Fallback to default camera
         
@@ -684,7 +690,7 @@ class SequenceApp(ttk.Window):
         
         # Main container
         main_container = ttk.Frame(self)
-        main_container.pack(fill="both", expand=True, padx=40, pady=20)
+        main_container.pack(fill="both", expand=True, padx=40, pady=(20, 0))
         
         # Success message
         success_frame = ttk.Frame(main_container, style="Card.TFrame",
@@ -708,10 +714,10 @@ class SequenceApp(ttk.Window):
         ttk.Label(success_content, text=details_text, 
                 font=("Segoe UI", 11), wraplength=800).pack(anchor="w")
         
-        # Image preview container
+        # Image preview container - reduced height
         preview_container = ttk.Frame(main_container, style="Card.TFrame",
                                     relief="sunken", borderwidth=2)
-        preview_container.pack(fill="both", expand=True, pady=(0, 20))
+        preview_container.pack(fill="both", expand=True, pady=(0, 15))
         
         # Preview header
         preview_header = ttk.Frame(preview_container)
@@ -725,9 +731,14 @@ class SequenceApp(ttk.Window):
                 font=("Segoe UI", 10), 
                 foreground="#888888").pack(side="right")
         
-        # Image display
-        image_label = ttk.Label(preview_container, relief="flat")
-        image_label.pack(expand=True, fill="both", padx=20, pady=(0, 20))
+        # Image display - centered
+        image_container = ttk.Frame(preview_container)
+        image_container.pack(expand=True, fill="both", padx=20, pady=(0, 20))
+        image_container.grid_rowconfigure(0, weight=1)
+        image_container.grid_columnconfigure(0, weight=1)
+        
+        image_label = ttk.Label(image_container, relief="flat")
+        image_label.grid(row=0, column=0)
         
         if ret:
             # Process frame with annotations
@@ -745,10 +756,10 @@ class SequenceApp(ttk.Window):
                 cv2.putText(display_frame, label, (x1 + 5, y1 - 8), 
                           cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
             
-            # Convert and resize for display
+            # Convert and resize for display - smaller size
             img = cv2.cvtColor(display_frame, cv2.COLOR_BGR2RGB)
             img = Image.fromarray(img)
-            display_width = 700
+            display_width = 600
             aspect_ratio = img.height / img.width
             display_height = int(display_width * aspect_ratio)
             img = img.resize((display_width, display_height), Image.Resampling.LANCZOS)
@@ -757,16 +768,28 @@ class SequenceApp(ttk.Window):
             image_label.imgtk = imgtk
             image_label.config(image=imgtk)
         
-        # Action instructions
+        # Navigation buttons right after image preview
+        nav_frame = ttk.Frame(preview_container)
+        nav_frame.pack(fill="x", padx=20, pady=(10, 20))
+        
+        ttk.Button(nav_frame, text="← Tekrar Çek", bootstyle="warning",
+                  style="Modern.TButton",
+                  command=self._build_taking_base_images_screen).pack(side="left")
+        
+        ttk.Button(nav_frame, text="🚀 Sistemi Başlat", bootstyle="success",
+                  style="Modern.TButton",
+                  command=self._build_operation_screen).pack(side="right")
+        
+        # Action instructions - reduced padding
         action_frame = ttk.Frame(main_container, style="Card.TFrame",
                                relief="raised", borderwidth=1)
-        action_frame.pack(fill="x")
+        action_frame.pack(fill="x", pady=(0, 15))
         
         action_content = ttk.Frame(action_frame)
-        action_content.pack(fill="x", padx=30, pady=20)
+        action_content.pack(fill="x", padx=30, pady=15)
         
         ttk.Label(action_content, text="📋 Sonraki Adımlar", 
-                font=("Segoe UI", 12, "bold")).pack(anchor="w", pady=(0, 10))
+                font=("Segoe UI", 12, "bold")).pack(anchor="w", pady=(0, 5))
         
         actions = [
             "• Fotoğrafları kontrol edin ve parçaların doğru konumda olduğundan emin olun",
@@ -776,19 +799,7 @@ class SequenceApp(ttk.Window):
         
         for action in actions:
             ttk.Label(action_content, text=action, 
-                    font=("Segoe UI", 10)).pack(anchor="w", pady=2)
-        
-        # Navigation
-        nav_frame = ttk.Frame(self)
-        nav_frame.pack(fill="x", padx=40, pady=20)
-        
-        ttk.Button(nav_frame, text="← Tekrar Çek", bootstyle="warning",
-                  style="Modern.TButton",
-                  command=self._build_taking_base_images_screen).pack(side="left")
-        
-        ttk.Button(nav_frame, text="🚀 Sistemi Başlat", bootstyle="success",
-                  style="Modern.TButton",
-                  command=self._build_operation_screen).pack(side="right")
+                    font=("Segoe UI", 10)).pack(anchor="w", pady=1)
 
     def _build_operation_screen(self):
         """Modern operation screen"""

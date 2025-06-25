@@ -38,9 +38,8 @@ class SessionOperator:
         self.show_pile_visualization = True  # Flag to show/hide pile visualization
    
     def run(self):
-        # Set background color of entire frame to match previous pages
-        self.tkinter_frame.config(bg="#E9EBFF")
-
+        # TTK frames don't support bg option, they use theme styling instead
+        
         # Top line
         top_line = tk.Frame(self.tkinter_frame, bg="#374151", height=3)
         top_line.pack(fill="x", pady=(0, 10))
