@@ -171,24 +171,30 @@ class SessionOperator:
                 sx1, sy1, sx2, sy2 = box.xyxy[0].tolist()
                 cx, cy = (sx1 + sx2) / 2, (sy1 + sy2) / 2
                 if x1 <= cx <= x2 and y1 <= cy <= y2:
-                    cv2.rectangle(self.comparer.frame_display, (int(sx1), int(sy1)), (int(sx2), int(sy2)), (0, 255, 0), 2)
-                    cv2.putText(self.comparer.frame_display, "L", (int(sx1), int(sy1) - 10),
-                                cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
                     if part_side == 1:  # wrong: left sticker on right-labeled part
+                        color = (0, 0, 255)  # Red
                         self.comparer.sticker_warning_timestamp = time.time()
                         self.comparer.sticker_error_type = "left_on_right"
+                    else:  # correct
+                        color = (0, 255, 0)  # Green
+                    cv2.rectangle(self.comparer.frame_display, (int(sx1), int(sy1)), (int(sx2), int(sy2)), color, 2)
+                    cv2.putText(self.comparer.frame_display, "L", (int(sx1), int(sy1) - 10),
+                                cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
 
             # Check for right stickers inside this part
             for box in all_right_stickers:
                 sx1, sy1, sx2, sy2 = box.xyxy[0].tolist()
                 cx, cy = (sx1 + sx2) / 2, (sy1 + sy2) / 2
                 if x1 <= cx <= x2 and y1 <= cy <= y2:
-                    cv2.rectangle(self.comparer.frame_display, (int(sx1), int(sy1)), (int(sx2), int(sy2)), (0, 0, 255), 2)
-                    cv2.putText(self.comparer.frame_display, "R", (int(sx1), int(sy1) - 10),
-                                cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
                     if part_side == 2:  # wrong: right sticker on left-labeled part
+                        color = (0, 0, 255)  # Red
                         self.comparer.sticker_warning_timestamp = time.time()
                         self.comparer.sticker_error_type = "right_on_left"
+                    else:  # correct
+                        color = (0, 255, 0)  # Green
+                    cv2.rectangle(self.comparer.frame_display, (int(sx1), int(sy1)), (int(sx2), int(sy2)), color, 2)
+                    cv2.putText(self.comparer.frame_display, "R", (int(sx1), int(sy1) - 10),
+                                cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
 
             # Draw part bounding box
             cv2.rectangle(self.comparer.frame_display, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 2)
