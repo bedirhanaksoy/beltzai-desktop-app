@@ -28,11 +28,14 @@ class SessionOperator:
         self.tracked_objects = {}  # {track_id: {'current_section': section_id, 'previous_section': section_id}}
         self.tracked_stickers = {}  # {sticker_id: {'current_section': section_id, 'previous_section': section_id}}
         self.sticker_id_counter = 0
-        self.cleanup_disabled = False  # Flag to disable automatic cleanup
+        self.cleanup_disabled = False  # Cleanup is always enabled
         
         # Persistent error tracking - requires 10 consecutive frames before showing error
         self.sticker_error_tracking = {}  # {track_id: {'error_type': str, 'consecutive_frames': int}}
         self.required_error_frames = 10  # Number of consecutive frames needed for error
+        
+        # Pile visualization toggle
+        self.show_pile_visualization = True  # Flag to show/hide pile visualization
    
     def run(self):
         # Set background color of entire frame to match previous pages
@@ -92,36 +95,6 @@ class SessionOperator:
         )
         self.continue_button.pack_forget()
 
-        # Reset tracking button
-        self.reset_button = tk.Button(
-            button_frame,
-            text="Sayacı Sıfırla",
-            bg="#FF9500",
-            fg="white",
-            font=("Arial", 11, "bold"),
-            relief="raised",
-            bd=2,
-            padx=20,
-            pady=5,
-            command=self.reset_tracking_system
-        )
-        self.reset_button.pack(side="left", padx=10)
-
-        # Toggle cleanup button
-        self.cleanup_button = tk.Button(
-            button_frame,
-            text="Temizlik: AÇIK",
-            bg="#9932CC",
-            fg="white",
-            font=("Arial", 11, "bold"),
-            relief="raised",
-            bd=2,
-            padx=15,
-            pady=5,
-            command=self._toggle_cleanup
-        )
-        self.cleanup_button.pack(side="left", padx=5)
-
         self.end_button = tk.Button(
             button_frame,
             text="Oturumu Bitir",
@@ -139,6 +112,10 @@ class SessionOperator:
         # Bottom line
         bottom_line = tk.Frame(self.tkinter_frame, bg="#374151", height=3)
         bottom_line.pack(fill="x", side="bottom", pady=(10, 0))
+
+        # Bind 'h' key for toggling pile visualization
+        self.tkinter_frame.bind_all('<KeyPress-h>', self._on_h_key_pressed)
+        self.tkinter_frame.focus_set()  # Make sure the frame can receive focus
 
         self._update_frame()
 
@@ -401,6 +378,10 @@ class SessionOperator:
         if self.frame_width is None or self.frame_height is None:
             return frame
         
+        # Skip drawing if pile visualization is disabled
+        if not self.show_pile_visualization:
+            return frame
+        
         section_width = self.frame_width // 3
         
         # Draw background colors and section information
@@ -470,15 +451,6 @@ class SessionOperator:
         
         return frame
     
-    def disable_cleanup(self):
-        """Disable automatic cleanup of lost objects and stickers"""
-        self.cleanup_disabled = True
-        print("Automatic cleanup disabled - objects and stickers will only be removed manually")
-    
-    def enable_cleanup(self):
-        """Enable automatic cleanup of lost objects and stickers"""
-        self.cleanup_disabled = False
-        print("Automatic cleanup enabled")
 
     def reset_tracking_system(self):
         """Reset the entire tracking system"""
@@ -487,10 +459,9 @@ class SessionOperator:
             self.vertical_sections[section_id]['objects'] = 0
             self.vertical_sections[section_id]['stickers'] = 0
         
-        # Clear tracking dictionaries
+        # Clear tracking dictionaries (only objects need tracking now)
         self.tracked_objects.clear()
-        self.tracked_stickers.clear()
-        self.sticker_id_counter = 0
+        # Note: stickers are now counted directly each frame, no tracking needed
         
         # Clear sticker error tracking
         self.sticker_error_tracking.clear()
@@ -508,14 +479,16 @@ class SessionOperator:
         
         print("Tracking system reset")
 
-    def _toggle_cleanup(self):
-        """Toggle automatic cleanup on/off"""
-        if self.cleanup_disabled:
-            self.enable_cleanup()
-            self.cleanup_button.config(text="Temizlik: AÇIK", bg="#9932CC")
+
+
+    def _on_h_key_pressed(self, event):
+        """Handle 'h' key press to toggle pile visualization"""
+        self.show_pile_visualization = not self.show_pile_visualization
+        
+        if self.show_pile_visualization:
+            print("Pile visualization enabled")
         else:
-            self.disable_cleanup()
-            self.cleanup_button.config(text="Temizlik: KAPALI", bg="#DC143C")
+            print("Pile visualization disabled")
 
     def _update_frame(self):
         if not self.is_running:
@@ -641,22 +614,10 @@ class SessionOperator:
         # Also run immediate check for completely empty sections every frame
         self._check_empty_sections_immediate()
 
-        # Track sticker movements in vertical sections
-        for box in all_left_stickers:
-            sx1, sy1, sx2, sy2 = box.xyxy[0].tolist()
-            center_x = (sx1 + sx2) / 2
-            center_y = (sy1 + sy2) / 2
-            self._track_sticker_movement((center_x, center_y), (sx1, sy1, sx2, sy2))
+        # Count stickers directly in each vertical section - simple and reliable approach
+        self._count_stickers_in_sections(all_left_stickers, all_right_stickers)
         
-        for box in all_right_stickers:
-            sx1, sy1, sx2, sy2 = box.xyxy[0].tolist()
-            center_x = (sx1 + sx2) / 2
-            center_y = (sy1 + sy2) / 2
-            self._track_sticker_movement((center_x, center_y), (sx1, sy1, sx2, sy2))
-        
-        # Clean up stickers that are no longer visible (run every 30 frames)
-        if not self.cleanup_disabled and self._cleanup_counter % 30 == 0:
-            self._cleanup_lost_stickers(current_sticker_positions)
+        # Clean up stickers no longer needed since we count directly each frame
 
         # Show warning messages if triggered in the last 1 second
         if hasattr(self.comparer, 'sticker_warning_timestamp') and time.time() - self.comparer.sticker_warning_timestamp < 1:
@@ -751,7 +712,7 @@ class SessionOperator:
                 self.immediate_empty_counters[section_id] += 1
                 
                 # Reset after 60 consecutive frames (2 seconds) of no detections
-                if self.immediate_empty_counters[section_id] >= 60:
+                if self.immediate_empty_counters[section_id] >= 30:
                     if self.vertical_sections[section_id]['objects'] > 0:
                         print(f"IMMEDIATE: Section {section_id} has no detections for {self.immediate_empty_counters[section_id]} frames, resetting object count to 0")
                         self.vertical_sections[section_id]['objects'] = 0
@@ -770,3 +731,27 @@ class SessionOperator:
             else:
                 # Detections found, reset counter
                 self.immediate_empty_counters[section_id] = 0
+
+    def _count_stickers_in_sections(self, all_left_stickers, all_right_stickers):
+        """Count stickers directly in each vertical section - simple and reliable"""
+        # Reset sticker counts to 0 for fresh counting each frame
+        for section_id in range(3):
+            self.vertical_sections[section_id]['stickers'] = 0
+        
+        # Count left stickers in each section
+        for box in all_left_stickers:
+            sx1, sy1, sx2, sy2 = box.xyxy[0].tolist()
+            center_x = (sx1 + sx2) / 2
+            center_y = (sy1 + sy2) / 2
+            section = self._get_vertical_section(center_x, center_y)
+            if section is not None:
+                self.vertical_sections[section]['stickers'] += 1
+        
+        # Count right stickers in each section
+        for box in all_right_stickers:
+            sx1, sy1, sx2, sy2 = box.xyxy[0].tolist()
+            center_x = (sx1 + sx2) / 2
+            center_y = (sy1 + sy2) / 2
+            section = self._get_vertical_section(center_x, center_y)
+            if section is not None:
+                self.vertical_sections[section]['stickers'] += 1

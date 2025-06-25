@@ -55,7 +55,7 @@ def resolve_sticker_conflicts(left_boxes, right_boxes, iou_threshold=0.5):
 
     return resolved_left, resolved_right
 
-def detect_stickers(frame, conf_threshold=0.8):
+def detect_stickers(frame, conf_threshold=0.8, iou_threshold=0.5):
     left_results = left_model.predict(frame, verbose=False)[0].boxes
     right_results = right_model.predict(frame, verbose=False)[0].boxes
 
@@ -63,7 +63,7 @@ def detect_stickers(frame, conf_threshold=0.8):
     right_filtered = [box for box in right_results if box.conf[0] >= conf_threshold]
 
     # Resolve overlapping sticker detections
-    #resolved_left, resolved_right = resolve_sticker_conflicts(left_filtered, right_filtered, iou_threshold)
+    resolved_left, resolved_right = resolve_sticker_conflicts(left_filtered, right_filtered, iou_threshold)
 
-    #return resolved_left, resolved_right
+    return resolved_left, resolved_right
     return left_filtered, right_filtered

@@ -650,7 +650,7 @@ class SequenceApp(tk.Tk):
         instruction_label_2.pack(anchor="w", padx=20, pady=(5, 20))
 
         # Video Input Area
-        self.cap = cv2.VideoCapture(2)
+        self.cap = cv2.VideoCapture(3)
         
         video_area = tk.Label(
             content_frame,
