@@ -6,7 +6,7 @@ from comparer_module import Comparer
 from sticker_module import detect_stickers  # Returns only left stickers now
 
 class SessionOperator:
-    def __init__(self, tkinter_frame, end_session_callback, model_path, right_base_image_path, left_base_image_path, user_info=None):
+    def __init__(self, tkinter_frame, end_session_callback, model_path, right_base_image_path, left_base_image_path, user_info=None, access_token=None):
         self.tkinter_frame = tkinter_frame
         self.tkinter_frame.winfo_toplevel().geometry("1000x800")
         self.end_session_callback = end_session_callback
@@ -14,6 +14,7 @@ class SessionOperator:
         self.right_base_image_path = right_base_image_path
         self.left_base_image_path = left_base_image_path
         self.user_info = user_info
+        self.access_token = access_token
         
         # Initialize comparer with user information
         self.comparer = Comparer(camera_id=2, model_path=self.model_path, user_info=user_info)
@@ -654,7 +655,7 @@ class SessionOperator:
 
     def _stop_process(self):
         self.is_running = False
-        self.comparer.logger.save_session()
+        self.comparer.logger.save_session(access_token=self.access_token)
         self.comparer.cap.release()
         if self.end_session_callback:
             self.end_session_callback()
@@ -682,14 +683,9 @@ class SessionOperator:
                     # Log the sticker error/warning to database
                     if "left" in error_type.lower():
                         self.comparer.logger.log_sticker_error(is_right_side=False)
-                        self.comparer.logger.log_sticker_warning(is_right_side=False)
                     elif "right" in error_type.lower():
                         self.comparer.logger.log_sticker_error(is_right_side=True)
-                        self.comparer.logger.log_sticker_warning(is_right_side=True)
-                    else:
-                        # General sticker warning if side cannot be determined
-                        self.comparer.logger.log_sticker_warning(is_right_side=True)  # Default to right
-                        
+                    
             else:
                 # Different error type, reset counter
                 existing_error['error_type'] = error_type

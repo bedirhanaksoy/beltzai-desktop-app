@@ -941,7 +941,8 @@ class SequenceApp(ttk.Window):
             model_path=self.selected_model_path,
             right_base_image_path=right_base_image_path,
             left_base_image_path=left_base_image_path,
-            user_info=self.user_info
+            user_info=self.user_info,
+            access_token=self.access_token
         )
         self.detection_and_comparison.run()
 

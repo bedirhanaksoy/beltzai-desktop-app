@@ -2,6 +2,12 @@ import sqlite3
 from datetime import datetime
 from pathlib import Path
 import os
+import requests
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
+BACKEND_URL = os.getenv('BACKEND_URL', 'http://localhost:8000')
 
 class Logger:
     def __init__(self, model_name="YOLOv8", user_id=None):
@@ -59,8 +65,6 @@ class Logger:
                 successful_detections INTEGER NOT NULL,
                 failed_detections INTEGER NOT NULL,
                 changed_side_detections INTEGER NOT NULL,
-                left_sticker_warnings INTEGER DEFAULT 0,
-                right_sticker_warnings INTEGER DEFAULT 0,
                 left_sticker_errors INTEGER DEFAULT 0,
                 right_sticker_errors INTEGER DEFAULT 0,
                 total_processing_time REAL DEFAULT 0.0,
@@ -84,8 +88,6 @@ class Logger:
                 ("user_id", "TEXT"),
                 ("session_start_time", "TIMESTAMP"),
                 ("session_end_time", "TIMESTAMP"),
-                ("left_sticker_warnings", "INTEGER DEFAULT 0"),
-                ("right_sticker_warnings", "INTEGER DEFAULT 0"),
                 ("left_sticker_errors", "INTEGER DEFAULT 0"),
                 ("right_sticker_errors", "INTEGER DEFAULT 0"),
                 ("total_processing_time", "REAL DEFAULT 0.0"),
@@ -120,13 +122,6 @@ class Logger:
         else:
             self.session_stats["failed_detections"] += 1
 
-    def log_sticker_warning(self, is_right_side=True):
-        """Log a sticker warning event."""
-        if is_right_side:
-            self.session_stats["right_sticker_warnings"] += 1
-        else:
-            self.session_stats["left_sticker_warnings"] += 1
-
     def log_sticker_error(self, is_right_side=True):
         """Log a sticker error event."""
         if is_right_side:
@@ -146,7 +141,68 @@ class Logger:
         self._processing_times.append(processing_time)
         self.session_stats["total_processing_time"] += processing_time
 
-    def save_session(self):
+    def send_session_to_backend(self, session_data, access_token=None):
+        """Send session data to backend API endpoint."""
+        try:
+            # Prepare headers
+            headers = {
+                "factory-code": "GUNES001",
+                "Content-Type": "application/json"
+            }
+            
+            # Add authorization header if token is available
+            if access_token:
+                headers["Authorization"] = f"Bearer {access_token}"
+            
+            # Prepare the data payload
+            payload = {
+                "user_id": session_data["user_id"],
+                "session_start_time": session_data["session_start_time"].isoformat() if session_data["session_start_time"] else None,
+                "session_end_time": session_data["session_end_time"].isoformat() if session_data["session_end_time"] else None,
+                "total_objects_detected": session_data["total_objects_detected"],
+                "right_side_objects": session_data["right_side_objects"],
+                "left_side_objects": session_data["left_side_objects"],
+                "successful_detections": session_data["successful_detections"],
+                "failed_detections": session_data["failed_detections"],
+                "changed_side_detections": session_data["changed_side_detections"],
+                "left_sticker_errors": session_data["left_sticker_errors"],
+                "right_sticker_errors": session_data["right_sticker_errors"],
+                "total_processing_time": session_data["total_processing_time"],
+                "average_processing_time": session_data["average_processing_time"],
+                "ai_model_used": session_data["ai_model_used"],
+                "factory_code": session_data["factory_code"]
+            }
+            
+            # Send POST request to backend
+            response = requests.post(
+                f"{BACKEND_URL}/api/v1/session-logs",
+                json=payload,
+                headers=headers,
+                timeout=10
+            )
+            
+            if response.status_code == 200 or response.status_code == 201:
+                print("Session data successfully sent to backend")
+                return True
+            else:
+                print(f"Failed to send session data to backend. Status code: {response.status_code}")
+                print(f"Response: {response.text}")
+                return False
+                
+        except requests.exceptions.Timeout:
+            print("Timeout error when sending session data to backend")
+            return False
+        except requests.exceptions.ConnectionError:
+            print("Connection error when sending session data to backend")
+            return False
+        except requests.exceptions.RequestException as e:
+            print(f"Request error when sending session data to backend: {str(e)}")
+            return False
+        except Exception as e:
+            print(f"Unexpected error when sending session data to backend: {str(e)}")
+            return False
+
+    def save_session(self, access_token=None):
         """Save the current session statistics to database."""
         try:
             # Calculate session end time and average processing time
@@ -167,15 +223,13 @@ class Logger:
                     successful_detections,
                     failed_detections,
                     changed_side_detections,
-                    left_sticker_warnings,
-                    right_sticker_warnings,
                     left_sticker_errors,
                     right_sticker_errors,
                     total_processing_time,
                     average_processing_time,
                     ai_model_used,
                     factory_code
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 self.user_id,
                 self.session_stats.get("session_start_time"),
@@ -186,8 +240,6 @@ class Logger:
                 self.session_stats["successful_detections"],
                 self.session_stats["failed_detections"],
                 self.session_stats["changed_side_detections"],
-                self.session_stats["left_sticker_warnings"],
-                self.session_stats["right_sticker_warnings"],
                 self.session_stats["left_sticker_errors"],
                 self.session_stats["right_sticker_errors"],
                 self.session_stats["total_processing_time"],
@@ -198,8 +250,36 @@ class Logger:
             self.conn.commit()
             print("Enhanced session statistics saved successfully")
             
+            # Send session data to backend
+            session_data = {
+                "user_id": self.user_id,
+                "session_start_time": self.session_stats.get("session_start_time"),
+                "session_end_time": session_end_time,
+                "total_objects_detected": self.session_stats["total_objects_detected"],
+                "right_side_objects": self.session_stats["right_side_objects"],
+                "left_side_objects": self.session_stats["left_side_objects"],
+                "successful_detections": self.session_stats["successful_detections"],
+                "failed_detections": self.session_stats["failed_detections"],
+                "changed_side_detections": self.session_stats["changed_side_detections"],
+                "left_sticker_errors": self.session_stats["left_sticker_errors"],
+                "right_sticker_errors": self.session_stats["right_sticker_errors"],
+                "total_processing_time": self.session_stats["total_processing_time"],
+                "average_processing_time": avg_processing_time,
+                "ai_model_used": self.session_stats["ai_model_used"],
+                "factory_code": "GUNES001"
+            }
+            
+            # Send data to backend
+            backend_success = self.send_session_to_backend(session_data, access_token)
+            if backend_success:
+                print("Session data successfully synchronized with backend")
+            else:
+                print("Warning: Session data saved locally but failed to sync with backend")
+            
             # Reset session statistics
             self._reset_session_stats()
+            
+            return backend_success
         except sqlite3.Error as e:
             print(f"Error saving session statistics: {e}")
 
@@ -212,8 +292,6 @@ class Logger:
             "successful_detections": 0,
             "failed_detections": 0,
             "changed_side_detections": 0,
-            "left_sticker_warnings": 0,
-            "right_sticker_warnings": 0,
             "left_sticker_errors": 0,
             "right_sticker_errors": 0,
             "total_processing_time": 0.0,
