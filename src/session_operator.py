@@ -6,14 +6,17 @@ from comparer_module import Comparer
 from sticker_module import detect_stickers  # Returns only left stickers now
 
 class SessionOperator:
-    def __init__(self, tkinter_frame, end_session_callback, model_path, right_base_image_path, left_base_image_path):
+    def __init__(self, tkinter_frame, end_session_callback, model_path, right_base_image_path, left_base_image_path, user_info=None):
         self.tkinter_frame = tkinter_frame
         self.tkinter_frame.winfo_toplevel().geometry("1000x800")
         self.end_session_callback = end_session_callback
         self.model_path = model_path
         self.right_base_image_path = right_base_image_path
         self.left_base_image_path = left_base_image_path
-        self.comparer = Comparer(camera_id=2, model_path=self.model_path)
+        self.user_info = user_info
+        
+        # Initialize comparer with user information
+        self.comparer = Comparer(camera_id=2, model_path=self.model_path, user_info=user_info)
         self.comparer.load_base_images()
         self.is_running = True
         
@@ -493,6 +496,9 @@ class SessionOperator:
         if not self.is_running:
             return
 
+        # Start timing frame processing
+        frame_start_time = time.time()
+
         ret, self.comparer.frame = self.comparer.cap.read()
         if not ret:
             self._stop_process()
@@ -640,6 +646,10 @@ class SessionOperator:
         self.video_label.imgtk = img_tk
         self.video_label.configure(image=img_tk)
 
+        # Calculate and log frame processing time
+        frame_processing_time = time.time() - frame_start_time
+        self.comparer.logger.add_processing_time(frame_processing_time)
+
         self.tkinter_frame.after(2, self._update_frame)
 
     def _stop_process(self):
@@ -668,6 +678,18 @@ class SessionOperator:
                     self.comparer.sticker_warning_timestamp = time.time()
                     self.comparer.sticker_error_type = error_type
                     print(f"Sticker error confirmed after {existing_error['consecutive_frames']} frames: {error_type}")
+                    
+                    # Log the sticker error/warning to database
+                    if "left" in error_type.lower():
+                        self.comparer.logger.log_sticker_error(is_right_side=False)
+                        self.comparer.logger.log_sticker_warning(is_right_side=False)
+                    elif "right" in error_type.lower():
+                        self.comparer.logger.log_sticker_error(is_right_side=True)
+                        self.comparer.logger.log_sticker_warning(is_right_side=True)
+                    else:
+                        # General sticker warning if side cannot be determined
+                        self.comparer.logger.log_sticker_warning(is_right_side=True)  # Default to right
+                        
             else:
                 # Different error type, reset counter
                 existing_error['error_type'] = error_type

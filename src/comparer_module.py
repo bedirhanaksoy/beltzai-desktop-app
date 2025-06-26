@@ -19,12 +19,20 @@ left_base_image_path = str(resources_path / "base_images/left_base_image.png")
 test_video_path = str(resources_path / "test_video/test_video.webm")
 
 class Comparer:
-    def __init__(self, camera_id=2, model_path=None):
+    def __init__(self, camera_id=2, model_path=None, user_info=None):
         
         model_name = Path(model_path).stem
         print(f"Model name: {model_name}")
-        self.logger = Logger(model_name=model_name)
-        self.logger.init()
+        
+        # Extract user ID from user_info if available
+        user_id = None
+        if user_info and isinstance(user_info, dict):
+            user_id = user_info.get('id') or user_info.get('email', 'unknown_user')
+        
+        self.logger = Logger(model_name=model_name, user_id=user_id)
+        self.logger.init(model_name=model_name, user_id=user_id)
+        self.logger.start_session()  # Start timing the session
+        
         #self.cap = cv2.VideoCapture(test_video_path)
         
         # Try camera index 3 first, then fallback to 0

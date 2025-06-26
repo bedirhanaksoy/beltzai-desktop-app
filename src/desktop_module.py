@@ -11,8 +11,11 @@ from session_operator import SessionOperator
 import time
 import os
 from datetime import datetime
+from dotenv import load_dotenv
 
-SERVER_URL = "http://example.com/validate_session"
+# Load environment variables
+load_dotenv()
+BACKEND_URL = os.getenv('BACKEND_URL', 'http://localhost:8000')
 
 MAIN_PATH = Path(__file__).resolve()
 resources_path = MAIN_PATH.resolve().parent.parent / "resources"
@@ -52,6 +55,11 @@ class SequenceApp(ttk.Window):
         self.update_frame_id = None
         self.selected_model_path = None
         self.datetime_update_id = None
+        
+        # Authentication variables
+        self.access_token = None
+        self.token_type = None
+        self.user_info = None
         
         # Configure modern styling
         self.configure_modern_styles()
@@ -95,12 +103,88 @@ class SequenceApp(ttk.Window):
             foreground="#ffffff"
         )
 
+    def get_authenticated_headers(self):
+        """Get headers with authentication token for API requests"""
+        headers = {
+            "factory-code": "GUNES001",
+            "Content-Type": "application/json"
+        }
+        
+        if self.access_token:
+            headers["Authorization"] = f"{self.token_type} {self.access_token}"
+        
+        return headers
+
     def _validate_session(self):
-        user_input = self.session_entry.get().strip()
-        if not user_input or user_input == "Ör: 123123":
-            messagebox.showerror("Hata", "Lütfen geçerli bir kullanıcı numarası girin.")
+        username_input = self.username_entry.get().strip()
+        password_input = self.password_entry.get().strip()
+        
+        # Check if username is empty or placeholder
+        if not username_input or username_input == "Kullanıcı adınızı girin...":
+            messagebox.showerror("Hata", "Lütfen geçerli bir kullanıcı adı girin.")
+            self.username_entry.focus()
             return
-        self._build_model_selection_screen()
+        
+        # Check if password is empty
+        if not password_input:
+            messagebox.showerror("Hata", "Lütfen şifrenizi girin.")
+            self.password_entry.focus()
+            return
+        
+        try:
+            # Make POST request to backend with factory-code header
+            headers = {
+                "factory-code": "GUNES001",
+                "Content-Type": "application/x-www-form-urlencoded"
+            }
+            
+            # Prepare login data as form data (OAuth2PasswordRequestForm format)
+            form_data = {
+                "username": username_input,
+                "password": password_input
+            }
+            
+            # Make the request to the login/access-token endpoint
+            response = requests.post(
+                f"{BACKEND_URL}/api/v1/login/access-token",
+                data=form_data,
+                headers=headers,
+                timeout=10
+            )
+            
+            # Check if the response is successful
+            if response.status_code == 200:
+                result = response.json()
+                
+                # Store token and user info in instance variables
+                self.access_token = result.get("access_token")
+                self.token_type = result.get("token_type", "bearer")
+                self.user_info = result.get("user_info")
+                
+                print(f"Login successful for user: {self.user_info.get('email', 'Unknown') if self.user_info else 'Unknown'}")
+                print(f"Token received: {self.access_token[:20]}..." if self.access_token else "No token")
+                
+                # Login successful, go to next page
+                self._build_model_selection_screen()
+            else:
+                # Server error or authentication failed
+                if response.status_code == 401:
+                    messagebox.showerror("Giriş Hatası", "Kullanıcı adı veya şifre hatalı. Lütfen tekrar deneyin.")
+                    self.password_entry.delete(0, tk.END)  # Clear password field
+                    self.username_entry.focus()
+                elif response.status_code == 404:
+                    messagebox.showerror("Giriş Hatası", "Fabrika kodu bulunamadı.")
+                else:
+                    messagebox.showerror("Bağlantı Hatası", f"Sunucu hatası: {response.status_code}")
+                
+        except requests.exceptions.Timeout:
+            messagebox.showerror("Bağlantı Hatası", "Sunucu yanıt vermiyor. Lütfen daha sonra tekrar deneyin.")
+        except requests.exceptions.ConnectionError:
+            messagebox.showerror("Bağlantı Hatası", "Sunucuya bağlanılamıyor. İnternet bağlantınızı kontrol edin.")
+        except requests.exceptions.RequestException as e:
+            messagebox.showerror("Hata", f"Bir hata oluştu: {str(e)}")
+        except Exception as e:
+            messagebox.showerror("Hata", f"Beklenmeyen bir hata oluştu: {str(e)}")
 
     def _setup_modern_header(self, title="BeltzAI Vision Control", step=""):
         """Create modern header with gradient-like effect"""
@@ -214,24 +298,40 @@ class SequenceApp(ttk.Window):
         login_frame = ttk.Frame(content_card)
         login_frame.pack(pady=30, padx=60, fill="x")
         
-        # Input field with modern styling
-        input_label = ttk.Label(login_frame, text="Kullanıcı Numarası", 
-                              font=("Segoe UI", 12, "bold"))
-        input_label.pack(anchor="w", pady=(0, 8))
+        # Username field with modern styling
+        username_label = ttk.Label(login_frame, text="Kullanıcı Adı", 
+                                  font=("Segoe UI", 12, "bold"))
+        username_label.pack(anchor="w", pady=(0, 8))
         
-        # Entry with better styling
-        entry_frame = ttk.Frame(login_frame)
-        entry_frame.pack(fill="x", pady=(0, 20))
+        # Username entry with better styling
+        username_entry_frame = ttk.Frame(login_frame)
+        username_entry_frame.pack(fill="x", pady=(0, 15))
         
-        self.session_entry = ttk.Entry(entry_frame, font=("Segoe UI", 12), 
-                                     width=30)
-        self.session_entry.pack(fill="x", pady=5)
-        self.session_entry.insert(0, "Kullanıcı numaranızı girin...")
+        self.username_entry = ttk.Entry(username_entry_frame, font=("Segoe UI", 12), 
+                                       width=30)
+        self.username_entry.pack(fill="x", pady=5)
+        self.username_entry.insert(0, "Kullanıcı adınızı girin...")
         
-        # Bind events for placeholder behavior
-        self.session_entry.bind("<FocusIn>", self._on_entry_focus_in)
-        self.session_entry.bind("<FocusOut>", self._on_entry_focus_out)
-        self.session_entry.bind("<Return>", lambda e: self._validate_session())
+        # Bind events for username placeholder behavior
+        self.username_entry.bind("<FocusIn>", self._on_username_focus_in)
+        self.username_entry.bind("<FocusOut>", self._on_username_focus_out)
+        self.username_entry.bind("<Return>", lambda e: self.password_entry.focus())
+        
+        # Password field
+        password_label = ttk.Label(login_frame, text="Şifre", 
+                                  font=("Segoe UI", 12, "bold"))
+        password_label.pack(anchor="w", pady=(0, 8))
+        
+        # Password entry with better styling
+        password_entry_frame = ttk.Frame(login_frame)
+        password_entry_frame.pack(fill="x", pady=(0, 20))
+        
+        self.password_entry = ttk.Entry(password_entry_frame, font=("Segoe UI", 12), 
+                                       width=30, show="*")
+        self.password_entry.pack(fill="x", pady=5)
+        
+        # Bind events for password field
+        self.password_entry.bind("<Return>", lambda e: self._validate_session())
         
         # Modern login button
         login_btn = ttk.Button(
@@ -263,13 +363,13 @@ class SequenceApp(ttk.Window):
                     font=("Segoe UI", 10, "bold"),
                     foreground="#4CAF50").pack(side="right")
 
-    def _on_entry_focus_in(self, event):
-        if self.session_entry.get() == "Kullanıcı numaranızı girin...":
-            self.session_entry.delete(0, tk.END)
+    def _on_username_focus_in(self, event):
+        if self.username_entry.get() == "Kullanıcı adınızı girin...":
+            self.username_entry.delete(0, tk.END)
 
-    def _on_entry_focus_out(self, event):
-        if not self.session_entry.get():
-            self.session_entry.insert(0, "Kullanıcı numaranızı girin...")
+    def _on_username_focus_out(self, event):
+        if not self.username_entry.get():
+            self.username_entry.insert(0, "Kullanıcı adınızı girin...")
 
     def _build_model_selection_screen(self):
         """Modern model selection screen with card-based layout"""
@@ -840,7 +940,8 @@ class SequenceApp(ttk.Window):
             end_session_callback=self._end_session,
             model_path=self.selected_model_path,
             right_base_image_path=right_base_image_path,
-            left_base_image_path=left_base_image_path
+            left_base_image_path=left_base_image_path,
+            user_info=self.user_info
         )
         self.detection_and_comparison.run()
 
