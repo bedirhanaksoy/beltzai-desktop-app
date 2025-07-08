@@ -40,6 +40,7 @@ opencv-python
 packaging
 Pillow
 proglog
+python-dotenv
 PyMatting
 PySocks
 PyWavelets

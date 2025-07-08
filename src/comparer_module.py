@@ -4,7 +4,7 @@ from collections import deque
 import time
 from ultralytics import YOLO
 from pathlib import Path
-from logger import Logger
+from logger_module import Logger
 
 # TODO According to how model name is stored, change the model name for that session
 
@@ -12,7 +12,6 @@ from logger import Logger
 MAIN_PATH = Path(__file__).resolve()
 resources_path = MAIN_PATH.resolve().parent.parent / "resources"
 
-models_path = str(resources_path / "models/right_part_medium.pt")
 right_base_image_path = str(resources_path / "base_images/right_base_image.png")
 left_base_image_path = str(resources_path / "base_images/left_base_image.png")
 
@@ -20,25 +19,56 @@ left_base_image_path = str(resources_path / "base_images/left_base_image.png")
 test_video_path = str(resources_path / "test_video/test_video.webm")
 
 class Comparer:
-    def __init__(self, camera_id=2, model_path=models_path):
+    def __init__(self, camera_id=2, model_path=None, user_info=None):
         
         model_name = Path(model_path).stem
-        self.logger = Logger(model_name=model_name)
-        self.logger.init()
+        print(f"Model name: {model_name}")
+        
+        # Extract user ID from user_info if available
+        user_id = None
+        if user_info and isinstance(user_info, dict):
+            user_id = user_info.get('id') or user_info.get('email', 'unknown_user')
+        
+        self.logger = Logger(model_name=model_name, user_id=user_id)
+        self.logger.init(model_name=model_name, user_id=user_id)
+        self.logger.start_session()  # Start timing the session
+        
         #self.cap = cv2.VideoCapture(test_video_path)
+        
+        # Try camera index 3 first, then fallback to 0
         self.cap = cv2.VideoCapture(0)
+        if not self.cap.isOpened():
+            print("Camera index 3 not available, trying camera index 0...")
+            self.cap = cv2.VideoCapture(0)
+        
+        if not self.cap.isOpened():
+            print("Failed to open any camera.")
+            exit()
 
         ret, self.frame = self.cap.read()
         if not ret:
-            print("Failed to grab a frame.")
-            exit()
+            print("Failed to grab a frame from camera.")
+            # Try alternative camera indices
+            for cam_idx in [0, 1, 2, 4]:
+                print(f"Trying camera index {cam_idx}...")
+                self.cap.release()
+                self.cap = cv2.VideoCapture(cam_idx)
+                if self.cap.isOpened():
+                    ret, self.frame = self.cap.read()
+                    if ret:
+                        print(f"Successfully connected to camera index {cam_idx}")
+                        break
+            
+            if not ret:
+                print("Failed to grab a frame from any camera.")
+                exit()
 
         # Get the height and width of the frame
         self.height, self.width, _ = self.frame.shape
 
         self.boxes = [
-            [(50, 200), (230, 380)],  # Right box
-            [(350, 200), (530, 380)]   # Left box
+            [(35, 120), (165, 250)],  # Right box
+            [(450, 120), (580, 250)]   # Left box
         ]
 
         self.index_side_info = [0] * 1000
@@ -46,7 +76,7 @@ class Comparer:
 
         # Initialize YOLO model
         self.model = YOLO(model_path)
-        
+        print(f"Model loaded from {model_path}")
         # Add these parameters
         self.BBOX_HISTORY_SIZE = 5  # Number of previous bounding boxes to store
         self.MOVEMENT_THRESHOLD = 5  # Maximum allowed movement in pixels
@@ -66,7 +96,7 @@ class Comparer:
         self.is_left_box_empty = True
         self.is_right_box_empty = True
 
-        self.STILL_THRESHOLD = 0.2  # Time threshold for considering object still (seconds)
+        self.STILL_THRESHOLD = 0.05  # Time threshold for considering object still (seconds)
         self.TEST_DURATION = 0.2    # Duration for running tests (seconds)
         self.warning_threshold = 0.8  # Threshold for warning if similarity score is below this value
 
@@ -78,6 +108,7 @@ class Comparer:
         self.right_base = None
         self.left_base = None
         self.yolo_detections = None
+        self.sticker_warning_timestamp = 0  # For 1-second left-sticker-on-right-part alert
 
     def load_base_images(self):
         """Load base images"""
@@ -380,6 +411,8 @@ class Comparer:
             self.index_warning_info[track_id] = 0
         
 if __name__ == "__main__":
-    cam = Comparer(camera_id=2, model_path=models_path)
+    # Example usage - you would need to provide a valid model path
+    model_path = str(resources_path / "models" / "right_part_medium.pt")
+    cam = Comparer(camera_id=3, model_path=model_path)
     cam.load_base_images()
-    cam.run()
+    # cam.run()  # Uncomment if you have a run method

@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from datetime import datetime
 from typing import List, Dict
-from logger import Logger
+from logger_module import Logger
 from pydantic import BaseModel
 
 class DateRange(BaseModel):
