@@ -105,11 +105,11 @@ The desktop application is a core component of the Machine Vision Module.
 
 ### Desktop App Main Page
 
-![Desktop App Main Page](will be added)
+![Desktop App Main Page](screenshots/main_page.jpg)
 
 ### Model Selection Page
 
-![Model Selection Page](will be added)
+![Model Selection Page](screenshots/model_selection.jpg)
 
 ### Base Image Creation Page for Objects
 
@@ -117,7 +117,7 @@ The desktop application is a core component of the Machine Vision Module.
 
 ### Detection of Misplaced Part
 
-![Detection of Misplaced Part](will be added)
+![Detection of Misplaced Part](screenshots/misplaced_part.jpg)
 
 ## Future Work
 
